@@ -23,7 +23,7 @@ class SettingsTests(unittest.TestCase):
             "TELEGRAM_BOT_TOKEN": "telegram-token",
             "OPENAI_API_KEY": "openai-key",
             "RESEND_API_KEY": "resend-key",
-            "EMAIL_ENCRYPTION_KEY": "encryption-key",
+            "KMS_KEY_ID": "alias/snap-and-send-email",
             "AWS_DEFAULT_REGION": "ap-southeast-1",
             "USERS_TABLE_NAME": "users",
             "RESEND_FROM_EMAIL": "notes@example.com",
@@ -36,6 +36,7 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.telegramBotToken, "telegram-token")
         self.assertEqual(settings.openaiModel, "gpt-5.6-terra")
         self.assertEqual(settings.awsRegion, "ap-southeast-1")
+        self.assertEqual(settings.kmsKeyId, "alias/snap-and-send-email")
 
     def test_settings_reject_missing_required_values(self):
         with patch.dict(os.environ, {}, clear=True):
