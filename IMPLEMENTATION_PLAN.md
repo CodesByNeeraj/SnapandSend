@@ -46,13 +46,13 @@ and note formatting.
 
 ## 4. Image intake and preparation
 
-- [ ] Implement Telegram photo/document validation for image files only.
-- [ ] Reject files over 20 MB with a clear user message.
-- [ ] Download accepted images through Telegram `getFile` into memory.
+- [x] Implement Telegram photo/document validation for image files only.
+- [x] Reject files over 20 MB with a clear user message.
+- [x] Download accepted images through Telegram `getFile` into memory.
 - [x] Resize and compress images in memory before the OpenAI request.
 - [x] Ensure image bytes are never written to disk, object storage, or logs.
-- [x] Add tests for oversized files, malformed image bytes, and image
-      preparation output.
+- [x] Add tests for accepted images, non-image files, oversized files,
+      malformed image bytes, and image preparation output.
 
 ## 5. Batch management
 
