@@ -18,15 +18,17 @@ class BatchManagerTests(unittest.TestCase):
 
         self.assertEqual(firstCount, 1)
         self.assertEqual(secondCount, 2)
-        self.assertEqual(self.manager.getPhotos("user-1"), [b"first", b"second"])
+        photos = self.manager.getPhotos("user-1")
+        self.assertEqual(photos, [b"first", b"second"])
 
     def test_batch_expires_three_minutes_after_latest_photo(self):
         photoTime = self.start
         self.manager.addPhoto("user-1", b"photo", photoTime)
 
-        self.assertEqual(
-            self.manager.getExpiredUserIds(photoTime + timedelta(seconds=179)), []
+        expiredUsers = self.manager.getExpiredUserIds(
+            photoTime + timedelta(seconds=179)
         )
+        self.assertEqual(expiredUsers, [])
         self.assertEqual(
             self.manager.getExpiredUserIds(photoTime + timedelta(seconds=180)),
             ["user-1"],
@@ -51,7 +53,8 @@ class BatchManagerTests(unittest.TestCase):
         with self.assertRaises(BatchLimitError):
             self.manager.addPhoto("user-1", b"too-many", self.start)
 
-        self.assertEqual(len(self.manager.getPhotos("user-1")), MAX_BATCH_PHOTOS)
+        photos = self.manager.getPhotos("user-1")
+        self.assertEqual(len(photos), MAX_BATCH_PHOTOS)
 
 
 if __name__ == "__main__":
