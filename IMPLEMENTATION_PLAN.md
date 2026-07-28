@@ -29,11 +29,11 @@ and note formatting.
 
 ## 2. User storage and privacy
 
-- [ ] Implement KMS-backed email encryption and decryption boundaries.
-- [ ] Implement the DynamoDB user store using `telegram_user_id` as the
+- [x] Implement KMS-backed email encryption and decryption boundaries.
+- [x] Implement the DynamoDB user store using `telegram_user_id` as the
       partition key and `email` plus `created_at` attributes.
-- [ ] Ensure plaintext email addresses are never stored at rest.
-- [ ] Add tests for new users, existing users, email updates, encryption, and
+- [x] Ensure plaintext email addresses are never stored at rest.
+- [x] Add tests for new users, existing users, email updates, encryption, and
       missing users using mocked AWS clients.
 
 ## 3. Rate limiting
