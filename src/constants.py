@@ -1,0 +1,9 @@
+"""Application constants derived from the Snap&Send PRD."""
+
+BATCH_INACTIVITY_SECONDS = 3 * 60
+DAILY_PHOTO_LIMIT = 30
+MAX_BATCH_PHOTOS = 15
+TELEGRAM_MAX_FILE_BYTES = 20 * 1024 * 1024
+AWS_REGION = "ap-southeast-1"
+DEFAULT_USERS_TABLE_NAME = "users"
+DEFAULT_OPENAI_MODEL = "gpt-5.6-terra"
