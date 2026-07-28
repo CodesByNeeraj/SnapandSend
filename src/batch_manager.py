@@ -14,6 +14,9 @@ class BatchLimitError(ValueError):
     """Raised when a batch already contains the maximum number of photos."""
 
 
+MAX_BATCH_ERROR_MESSAGE = "This batch already contains the maximum photos"
+
+
 @dataclass
 class PhotoBatch:
     photos: list[bytes] = field(default_factory=list)
@@ -26,12 +29,17 @@ class BatchManager:
     def __init__(self):
         self.batches: dict[str, PhotoBatch] = {}
 
-    def addPhoto(self, userId: str, imageBytes: bytes, receivedAt: datetime) -> int:
+    def addPhoto(
+        self,
+        userId: str,
+        imageBytes: bytes,
+        receivedAt: datetime,
+    ) -> int:
         """Append a photo and return the user's new batch count."""
 
         batch = self.batches.setdefault(userId, PhotoBatch())
         if len(batch.photos) >= MAX_BATCH_PHOTOS:
-            raise BatchLimitError("This batch already contains the maximum photos")
+            raise BatchLimitError(MAX_BATCH_ERROR_MESSAGE)
         batch.photos.append(imageBytes)
         batch.lastPhotoAt = receivedAt
         return len(batch.photos)

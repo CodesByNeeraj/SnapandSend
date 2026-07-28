@@ -5,7 +5,9 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
-from src.constants import AWS_REGION, DEFAULT_OPENAI_MODEL, DEFAULT_USERS_TABLE_NAME
+from src.constants import AWS_REGION
+from src.constants import DEFAULT_OPENAI_MODEL
+from src.constants import DEFAULT_USERS_TABLE_NAME
 
 
 class ConfigurationError(ValueError):
@@ -37,22 +39,23 @@ class Settings:
             "EMAIL_ENCRYPTION_KEY": os.getenv("EMAIL_ENCRYPTION_KEY"),
             "RESEND_FROM_EMAIL": os.getenv("RESEND_FROM_EMAIL"),
         }
-        missingValues = [
-            name for name, value in requiredValues.items() if not value
-        ]
+        configuredValues = requiredValues.items()
+        missingValues = [name for name, value in configuredValues if not value]
         if missingValues:
             missingNames = ", ".join(missingValues)
             raise ConfigurationError(
                 f"Missing required environment variables: {missingNames}"
             )
 
+        defaultTableName = DEFAULT_USERS_TABLE_NAME
+        usersTableName = os.getenv("USERS_TABLE_NAME", defaultTableName)
         return cls(
             telegramBotToken=requiredValues["TELEGRAM_BOT_TOKEN"],
             openaiApiKey=requiredValues["OPENAI_API_KEY"],
             resendApiKey=requiredValues["RESEND_API_KEY"],
             emailEncryptionKey=requiredValues["EMAIL_ENCRYPTION_KEY"],
             awsRegion=os.getenv("AWS_DEFAULT_REGION", AWS_REGION),
-            usersTableName=os.getenv("USERS_TABLE_NAME", DEFAULT_USERS_TABLE_NAME),
+            usersTableName=usersTableName,
             resendFromEmail=requiredValues["RESEND_FROM_EMAIL"],
             openaiModel=os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
         )
