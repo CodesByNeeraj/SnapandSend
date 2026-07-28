@@ -38,11 +38,11 @@ and note formatting.
 
 ## 3. Rate limiting
 
-- [ ] Implement the per-user limit of 30 accepted photos per day.
-- [ ] Implement the documented unlimited-account exception without exposing the
+- [x] Implement the per-user limit of 30 accepted photos per day.
+- [x] Implement the documented unlimited-account exception without exposing the
       account identifier in logs or user-facing messages.
-- [ ] Define the counting boundary and timezone behavior for a calendar day.
-- [ ] Add tests for below-limit, at-limit, over-limit, reset, and exception cases.
+- [x] Define the counting boundary and timezone behavior for a calendar day.
+- [x] Add tests for below-limit, at-limit, over-limit, reset, and exception cases.
 
 ## 4. Image intake and preparation
 
