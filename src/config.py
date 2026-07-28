@@ -21,7 +21,7 @@ class Settings:
     telegramBotToken: str
     openaiApiKey: str
     resendApiKey: str
-    emailEncryptionKey: str
+    kmsKeyId: str
     awsRegion: str
     usersTableName: str
     resendFromEmail: str
@@ -36,7 +36,7 @@ class Settings:
             "TELEGRAM_BOT_TOKEN": os.getenv("TELEGRAM_BOT_TOKEN"),
             "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
             "RESEND_API_KEY": os.getenv("RESEND_API_KEY"),
-            "EMAIL_ENCRYPTION_KEY": os.getenv("EMAIL_ENCRYPTION_KEY"),
+            "KMS_KEY_ID": os.getenv("KMS_KEY_ID"),
             "RESEND_FROM_EMAIL": os.getenv("RESEND_FROM_EMAIL"),
         }
         configuredValues = requiredValues.items()
@@ -53,7 +53,7 @@ class Settings:
             telegramBotToken=requiredValues["TELEGRAM_BOT_TOKEN"],
             openaiApiKey=requiredValues["OPENAI_API_KEY"],
             resendApiKey=requiredValues["RESEND_API_KEY"],
-            emailEncryptionKey=requiredValues["EMAIL_ENCRYPTION_KEY"],
+            kmsKeyId=requiredValues["KMS_KEY_ID"],
             awsRegion=os.getenv("AWS_DEFAULT_REGION", AWS_REGION),
             usersTableName=usersTableName,
             resendFromEmail=requiredValues["RESEND_FROM_EMAIL"],
