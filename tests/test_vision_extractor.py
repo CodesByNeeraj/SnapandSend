@@ -69,9 +69,8 @@ class VisionExtractorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(client.responses.calls), 2)
 
     async def test_extract_document_marks_unreadable_image(self):
-        outputText = json.dumps(
-            {"status": "unreadable", "title": "", "bullets": []}
-        )
+        unreadableDocument = dict(status="unreadable", title="", bullets=[])
+        outputText = json.dumps(unreadableDocument)
         client = FakeClient([FakeResponse(outputText)])
         extractor = VisionExtractor(client, "gpt-5.6-terra")
 
