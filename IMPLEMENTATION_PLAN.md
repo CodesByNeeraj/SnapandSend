@@ -59,15 +59,16 @@ and note formatting.
 - [x] Implement the in-memory per-user batch map containing ordered image bytes.
 - [x] Add each accepted photo to the user's current batch in arrival order.
 - [x] Implement 3-minute inactivity timeout detection.
-- [ ] Connect timeout detection to automatic batch closure and processing.
+- [x] Provide atomic closure for batches selected by timeout detection.
+- [ ] Connect the timeout to automatic batch processing by the coordinator.
 - [ ] Implement `/done` to close and process the current batch immediately.
 - [ ] Make `/done` with no photos return the required upload-first message.
 - [ ] Clear batch state after successful processing or unrecoverable process
       failure.
 - [x] Ensure a restart does not recover or send a partial in-memory batch.
-- [x] Add tests for ordering, timeout boundaries, empty batches, and state
-      clearing.
-- [ ] Add tests for multiple users and `/done`.
+- [x] Add tests for ordering, multiple users, timeout boundaries, empty batches,
+      and state clearing.
+- [ ] Add tests for `/done`.
 
 ## 6. OpenAI extraction and note formatting
 

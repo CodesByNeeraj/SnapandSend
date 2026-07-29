@@ -34,6 +34,20 @@ class BatchManagerTests(unittest.TestCase):
             ["user-1"],
         )
 
+    def test_close_expired_batches_preserves_active_batch(self):
+        self.manager.addPhoto("expired-user", b"expired", self.start)
+        self.manager.addPhoto(
+            "active-user", b"active", self.start + timedelta(seconds=1)
+        )
+
+        closedBatches = self.manager.closeExpiredBatches(
+            self.start + timedelta(seconds=180)
+        )
+
+        self.assertEqual(closedBatches, {"expired-user": [b"expired"]})
+        self.assertEqual(self.manager.getPhotos("expired-user"), [])
+        self.assertEqual(self.manager.getPhotos("active-user"), [b"active"])
+
     def test_close_batch_returns_photos_and_clears_state(self):
         self.manager.addPhoto("user-1", b"photo", self.start)
 

@@ -68,3 +68,12 @@ class BatchManager:
             if batch.lastPhotoAt is not None
             and currentTime - batch.lastPhotoAt >= timeout
         ]
+
+    def closeExpiredBatches(
+        self,
+        currentTime: datetime,
+    ) -> dict[str, list[bytes]]:
+        """Return and clear batches that reached the inactivity timeout."""
+
+        expiredUserIds = self.getExpiredUserIds(currentTime)
+        return {userId: self.closeBatch(userId) for userId in expiredUserIds}
