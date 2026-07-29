@@ -54,36 +54,35 @@ and note formatting.
 - [x] Add tests for accepted images, non-image files, oversized files,
       malformed image bytes, and image preparation output.
 
-## 5. Batch management
+## 5. Batch state management
 
 - [x] Implement the in-memory per-user batch map containing ordered image bytes.
 - [x] Add each accepted photo to the user's current batch in arrival order.
 - [x] Implement 3-minute inactivity timeout detection.
 - [x] Provide atomic closure for batches selected by timeout detection.
-- [ ] Connect the timeout to automatic batch processing by the coordinator.
-- [ ] Implement `/done` to close and process the current batch immediately.
-- [ ] Make `/done` with no photos return the required upload-first message.
-- [ ] Clear batch state after successful processing or unrecoverable process
-      failure.
 - [x] Ensure a restart does not recover or send a partial in-memory batch.
 - [x] Add tests for ordering, multiple users, timeout boundaries, empty batches,
       and state clearing.
-- [ ] Add tests for `/done`.
+
+The batch state primitives are complete. Timeout processing, `/done`, and
+post-processing state handling are implemented with the router and
+`BatchOrchestrator` in section 8, after extraction and email delivery exist.
 
 ## 6. OpenAI extraction and note formatting
 
-- [ ] Implement the OpenAI client boundary using the configured vision model.
-- [ ] Build the prompt to extract visible text, preserve meaning, avoid
-      fabricated content, and return structured Markdown with a heading and
-      bullet points.
+- [x] Implement the OpenAI client boundary using the configured vision model.
+- [x] Build the prompt to extract visible text, preserve meaning, avoid
+      fabricated content, and return strict structured data with a title and
+      ordered bullet points.
 - [ ] Process each image while preserving batch order.
-- [ ] Detect and report unreadable, blurry, dark, or textless photos without
+- [x] Detect and report unreadable, blurry, dark, or textless photos without
       failing the rest of the batch.
-- [ ] Retry an OpenAI timeout or error exactly once, then notify the user of
+- [x] Retry an OpenAI timeout or error exactly once, then notify the user of
       failure rather than hanging silently.
 - [ ] Remove near-duplicate content when two photos show the same slide.
-- [ ] Add tests using mocked OpenAI responses for clear slides, handwriting,
-      unreadable images, failures, retry behavior, ordering, and duplicates.
+- [x] Add mocked tests for clear slides, unreadable images, failures, retry
+      behavior, and invalid model output.
+- [ ] Add batch-level tests for handwriting, ordering, and duplicate removal.
 
 ## 7. Email delivery
 
@@ -95,12 +94,14 @@ and note formatting.
 - [ ] Add tests for formatting, recipient handling, one-email-per-batch, and
       mocked Resend failures.
 
-## 8. Telegram bot handlers and orchestration
+## 8. Telegram routing and batch orchestration
 
 - [ ] Implement `/start` onboarding, including data-handling information and the
       email prompt.
 - [ ] Implement plain-text email reply handling, validation, encrypted
       persistence, and continuation of any photo waiting for email setup.
+- [ ] Implement the deterministic Telegram router for photos, documents,
+      commands, awaiting-email text, and unsupported input.
 - [ ] Implement photo receipt acknowledgement within the 2-second target where
       practical, including the running batch count and 3-minute window message.
 - [ ] Prompt for email before processing photos when no email is registered.
@@ -108,6 +109,11 @@ and note formatting.
       `/setemail` command.
 - [ ] Connect photo handling, rate limiting, image preparation, batch management,
       OpenAI extraction, and email delivery without blocking Telegram updates.
+- [ ] Implement the `BatchOrchestrator` to process timeout closures and
+      `/done` through vision extraction, note curation, and one email delivery.
+- [ ] Make `/done` with no photos return the required upload-first message.
+- [ ] Clear batch state after successful processing or unrecoverable process
+      failure, without sending partial email.
 - [ ] Implement user-facing messages for unsupported files, rate limits,
       unreadable photos, processing failures, and restart-related reuploads.
 - [ ] Add handler tests with mocked Telegram updates and external services.
