@@ -72,8 +72,8 @@ post-processing state handling are implemented with the router and
 
 - [x] Implement the OpenAI client boundary using the configured vision model.
 - [x] Build the prompt to extract visible text, preserve meaning, avoid
-      fabricated content, and return structured Markdown with a heading and
-      bullet points.
+      fabricated content, and return strict structured data with a title and
+      ordered bullet points.
 - [ ] Process each image while preserving batch order.
 - [x] Detect and report unreadable, blurry, dark, or textless photos without
       failing the rest of the batch.
