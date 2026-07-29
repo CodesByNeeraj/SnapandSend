@@ -67,7 +67,9 @@ class BatchOrchestratorTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(result)
         self.assertEqual(emailSender.requests, [])
 
-    async def test_process_batch_does_not_send_partial_email_after_extraction_failure(self):
+    async def test_process_batch_does_not_send_partial_email_after_extraction_failure(
+        self,
+    ):
         vision = FakeVisionExtractor([RuntimeError("OpenAI failed")])
         curator = FakeNotesCurator(CuratedNotes([]))
         emailSender = FakeEmailSender()
