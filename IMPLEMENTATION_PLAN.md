@@ -65,8 +65,8 @@ and note formatting.
       and state clearing.
 
 The batch state primitives are complete. Timeout processing, `/done`, and
-post-processing state handling are implemented with the router and batch
-workflow coordinator in section 8, after extraction and email delivery exist.
+post-processing state handling are implemented with the router and
+`BatchOrchestrator` in section 8, after extraction and email delivery exist.
 
 ## 6. OpenAI extraction and note formatting
 
@@ -109,7 +109,7 @@ workflow coordinator in section 8, after extraction and email delivery exist.
       `/setemail` command.
 - [ ] Connect photo handling, rate limiting, image preparation, batch management,
       OpenAI extraction, and email delivery without blocking Telegram updates.
-- [ ] Implement the batch workflow coordinator to process timeout closures and
+- [ ] Implement the `BatchOrchestrator` to process timeout closures and
       `/done` through vision extraction, note curation, and one email delivery.
 - [ ] Make `/done` with no photos return the required upload-first message.
 - [ ] Clear batch state after successful processing or unrecoverable process
