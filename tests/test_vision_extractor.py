@@ -1,6 +1,8 @@
+import json
 import unittest
 
-from src.vision_extractor import VisionExtractionError, VisionExtractor
+from src.vision_extractor import ExtractedDocument, VisionExtractionError
+from src.vision_extractor import VisionExtractor
 
 
 class FakeResponses:
@@ -27,17 +29,34 @@ class FakeResponse:
 
 
 class VisionExtractorTests(unittest.IsolatedAsyncioTestCase):
-    async def test_extract_notes_returns_structured_model_output(self):
-        client = FakeClient([FakeResponse("# Slide title\n- Important point")])
+    async def test_extract_document_returns_typed_content(self):
+        outputText = json.dumps(
+            {
+                "status": "readable",
+                "title": "Slide title",
+                "bullets": ["Important point"],
+            }
+        )
+        client = FakeClient([FakeResponse(outputText)])
         extractor = VisionExtractor(client, "gpt-5.6-terra")
 
-        result = await extractor.extractNotes(b"image-bytes")
+        result = await extractor.extractDocument(b"image-bytes")
 
-        self.assertEqual(result, "# Slide title\n- Important point")
+        self.assertEqual(
+            result,
+            ExtractedDocument(
+                status="readable",
+                title="Slide title",
+                bullets=["Important point"],
+            ),
+        )
         request = client.responses.calls[0]
         imageContent = request["input"][0]["content"][1]
         imageUrl = imageContent["image_url"]
         self.assertTrue(imageUrl.startswith("data:image/jpeg;base64,"))
+        responseFormat = request["text"]["format"]
+        self.assertEqual(responseFormat["type"], "json_schema")
+        self.assertTrue(responseFormat["strict"])
 
     async def test_extract_notes_retries_once_then_raises(self):
         responses = [TimeoutError("temporary"), TimeoutError("failed")]
@@ -45,24 +64,30 @@ class VisionExtractorTests(unittest.IsolatedAsyncioTestCase):
         extractor = VisionExtractor(client, "gpt-5.6-terra")
 
         with self.assertRaises(VisionExtractionError):
-            await extractor.extractNotes(b"image-bytes")
+            await extractor.extractDocument(b"image-bytes")
 
         self.assertEqual(len(client.responses.calls), 2)
 
-    async def test_unprocessable_marker_returns_none(self):
-        client = FakeClient([FakeResponse("UNPROCESSABLE_IMAGE")])
+    async def test_extract_document_marks_unreadable_image(self):
+        outputText = json.dumps(
+            {"status": "unreadable", "title": "", "bullets": []}
+        )
+        client = FakeClient([FakeResponse(outputText)])
         extractor = VisionExtractor(client, "gpt-5.6-terra")
 
-        result = await extractor.extractNotes(b"image-bytes")
+        result = await extractor.extractDocument(b"image-bytes")
 
-        self.assertIsNone(result)
+        self.assertEqual(
+            result,
+            ExtractedDocument(status="unreadable", title="", bullets=[]),
+        )
 
-    async def test_extract_notes_rejects_output_without_markdown_heading(self):
-        client = FakeClient([FakeResponse("- Important point")])
+    async def test_extract_document_rejects_invalid_response_schema(self):
+        client = FakeClient([FakeResponse('{"status":"readable"}')])
         extractor = VisionExtractor(client, "gpt-5.6-terra")
 
         with self.assertRaises(VisionExtractionError):
-            await extractor.extractNotes(b"image-bytes")
+            await extractor.extractDocument(b"image-bytes")
 
         self.assertEqual(len(client.responses.calls), 1)
 
