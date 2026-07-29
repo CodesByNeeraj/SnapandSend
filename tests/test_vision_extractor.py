@@ -36,10 +36,12 @@ class VisionExtractorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, "# Slide title\n- Important point")
         request = client.responses.calls[0]
         imageContent = request["input"][0]["content"][1]
-        self.assertTrue(imageContent["image_url"].startswith("data:image/jpeg;base64,"))
+        imageUrl = imageContent["image_url"]
+        self.assertTrue(imageUrl.startswith("data:image/jpeg;base64,"))
 
     async def test_extract_notes_retries_once_then_raises(self):
-        client = FakeClient([TimeoutError("temporary"), TimeoutError("failed")])
+        responses = [TimeoutError("temporary"), TimeoutError("failed")]
+        client = FakeClient(responses)
         extractor = VisionExtractor(client, "gpt-5.6-terra")
 
         with self.assertRaises(VisionExtractionError):
