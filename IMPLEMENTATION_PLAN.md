@@ -121,7 +121,8 @@ post-processing state handling are implemented with the router and
       failure, without sending partial email.
 - [x] Implement the user-facing message for unsupported files.
 - [x] Implement the user-facing message for processing failures.
-- [ ] Implement user-facing messages for rate limits, unreadable photos, and
+- [x] Implement the user-facing message for unreadable photo batches.
+- [ ] Implement user-facing messages for rate limits and
       restart-related reuploads.
 - [x] Add adapter tests with mocked Telegram updates for `/start`, text, and
       `/done`.
