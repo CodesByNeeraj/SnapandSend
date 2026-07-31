@@ -33,7 +33,7 @@ class BotTests(unittest.TestCase):
             runtime.return_value.telegramUpdateAdapter.handleText = object()
             with patch("src.bot.ApplicationBuilder", return_value=FakeBuilder()):
                 application = buildApplication(settings)
-        self.assertEqual(len(application.handlers), 3)
+        self.assertEqual(len(application.handlers), 5)
         self.assertIn("runtime", application.bot_data)
 
 
