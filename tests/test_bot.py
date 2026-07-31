@@ -9,6 +9,9 @@ class FakeApplication:
     def __init__(self):
         self.handlers = []
         self.bot_data = {}
+        self.job_queue = type(
+            "JobQueue", (), {"run_repeating": lambda *args, **kwargs: None}
+        )()
 
     def add_handler(self, handler):
         self.handlers.append(handler)
