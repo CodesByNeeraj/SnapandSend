@@ -11,6 +11,9 @@ class FakeUserStore:
     def saveEmail(self, userId, email, createdAt):
         self.saved.append((userId, email, createdAt))
 
+    def getEmail(self, userId):
+        return "person@example.com" if userId == "registered" else None
+
 
 class TelegramRouterTests(unittest.TestCase):
     def test_start_prompts_for_email_and_discloses_data_handling(self):
@@ -49,6 +52,21 @@ class TelegramRouterTests(unittest.TestCase):
         response = router.handleText("user-1", "hello", datetime.now(timezone.utc))
 
         self.assertIn("photo", response.lower())
+
+    def test_image_upload_without_registered_email_prompts_for_email(self):
+        router = TelegramRouter(FakeUserStore())
+
+        response = router.handleImageUpload("new-user")
+
+        self.assertIn("email", response.lower())
+        self.assertTrue(router.awaitingEmail["new-user"])
+
+    def test_image_upload_with_registered_email_is_accepted(self):
+        router = TelegramRouter(FakeUserStore())
+
+        response = router.handleImageUpload("registered")
+
+        self.assertIn("accepted", response.lower())
 
 
 if __name__ == "__main__":
