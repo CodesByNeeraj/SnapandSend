@@ -103,7 +103,7 @@ post-processing state handling are implemented with the router and
       persistence, and continuation of any photo waiting for email setup.
 - [ ] Implement the remaining deterministic Telegram routing for photos,
       documents, commands, and unsupported input.
-- [ ] Implement photo receipt acknowledgement within the 2-second target where
+- [x] Implement photo receipt acknowledgement within the 2-second target where
       practical, including the running batch count and 3-minute window message.
 - [x] Prompt for email before processing photos when no email is registered.
 - [x] Ensure a user can provide the requested email by typing a reply, without a
