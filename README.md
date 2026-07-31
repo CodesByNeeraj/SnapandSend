@@ -19,3 +19,5 @@ notes.
 The users DynamoDB table uses `telegram_user_id` as its partition key. User
 emails are encrypted with KMS before storage. Uploaded images and extracted
 notes remain in memory and are not written to disk.
+
+Provider and Railway configuration is documented in `docs/setup.md`.

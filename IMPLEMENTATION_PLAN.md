@@ -145,7 +145,7 @@ post-processing state handling are implemented with the router and
 - [x] Add a Telegram long-polling entrypoint with `/start`, `/done`, text,
       photo, and document handler registration.
 - [x] Add local setup and runtime instructions to the project documentation.
-- [ ] Document required Telegram bot, OpenAI, DynamoDB/KMS, Resend, and Railway
+- [x] Document required Telegram bot, OpenAI, DynamoDB/KMS, Resend, and Railway
       configuration without including secrets.
 - [ ] Create the DynamoDB users table in `ap-southeast-1` with on-demand billing.
 - [ ] Configure the Resend sending domain and sender address.
