@@ -57,6 +57,37 @@ class EndToEndTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(emailClient.requests), 1)
         self.assertIn("Slide title", emailClient.requests[0]["text"])
 
+    async def test_eight_image_batch_preserves_order_and_sends_one_email(self):
+        batchManager = BatchManager()
+        photoRouter = PhotoBatchRouter(RateLimiter(), batchManager, lambda image: image)
+        emailClient = FakeEmailClient()
+        orchestrator = BatchOrchestrator(
+            FakeVisionExtractor(),
+            FakeNotesCurator(),
+            EmailSender(emailClient, "notes@example.com"),
+        )
+        doneRouter = DoneBatchRouter(batchManager, FakeUserStore(), orchestrator)
+        now = datetime.now(timezone.utc)
+
+        for index in range(8):
+            photoRouter.acceptImage("user", None, bytes([index]), now)
+
+        await doneRouter.handleDone("user")
+
+        self.assertEqual(len(emailClient.requests), 1)
+
+    async def test_sixteenth_image_is_rejected_at_batch_limit(self):
+        batchManager = BatchManager()
+        photoRouter = PhotoBatchRouter(RateLimiter(), batchManager, lambda image: image)
+        now = datetime.now(timezone.utc)
+
+        for index in range(15):
+            photoRouter.acceptImage("user", None, bytes([index]), now)
+        response = photoRouter.acceptImage("user", None, b"sixteenth", now)
+
+        self.assertIn("15 photos", response)
+        self.assertEqual(len(batchManager.getPhotos("user")), 15)
+
 
 if __name__ == "__main__":
     unittest.main()

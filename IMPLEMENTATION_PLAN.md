@@ -131,8 +131,9 @@ post-processing state handling are implemented with the router and
 ## 9. End-to-end behavior and performance
 
 - [x] Test the complete clear-slide flow from upload to one formatted email.
-- [ ] Test an 8-photo batch and verify order and exactly one email.
-- [ ] Test the 15-photo batch limit and the under-60-second delivery target.
+- [x] Test an 8-photo batch and verify order and exactly one email.
+- [x] Test the 15-photo batch limit.
+- [ ] Verify the under-60-second delivery target.
 - [ ] Test photo-before-email registration and automatic continuation after the
       user replies with a valid email address.
 - [ ] Test process-failure behavior and confirm no partial email is sent.
