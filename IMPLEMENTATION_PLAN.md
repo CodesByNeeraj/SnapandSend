@@ -97,16 +97,16 @@ post-processing state handling are implemented with the router and
 
 ## 8. Telegram routing and batch orchestration
 
-- [ ] Implement `/start` onboarding, including data-handling information and the
+- [x] Implement `/start` onboarding, including data-handling information and the
       email prompt.
-- [ ] Implement plain-text email reply handling, validation, encrypted
+- [x] Implement plain-text email reply handling, validation, encrypted
       persistence, and continuation of any photo waiting for email setup.
-- [ ] Implement the deterministic Telegram router for photos, documents,
-      commands, awaiting-email text, and unsupported input.
+- [ ] Implement the remaining deterministic Telegram routing for photos,
+      documents, commands, and unsupported input.
 - [ ] Implement photo receipt acknowledgement within the 2-second target where
       practical, including the running batch count and 3-minute window message.
-- [ ] Prompt for email before processing photos when no email is registered.
-- [ ] Ensure a user can provide the requested email by typing a reply, without a
+- [x] Prompt for email before processing photos when no email is registered.
+- [x] Ensure a user can provide the requested email by typing a reply, without a
       `/setemail` command.
 - [ ] Connect photo handling, rate limiting, image preparation, batch management,
       OpenAI extraction, and email delivery without blocking Telegram updates.
