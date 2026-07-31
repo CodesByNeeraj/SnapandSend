@@ -5,7 +5,12 @@ from typing import Any
 
 from src.image_intake import FileSizeLimitError, UnsupportedImageError
 from src.image_intake import downloadImageBytes, validateImageUpload
+from src.email_sender import EmailDeliveryError
+from src.notes_curator import NotesCurationError
 from src.telegram_router import IMAGE_ACCEPTED_MESSAGE
+from src.vision_extractor import VisionExtractionError
+
+PROCESSING_FAILURE_MESSAGE = "I could not process this batch. Please try again."
 
 
 class TelegramUpdateAdapter:
@@ -64,5 +69,10 @@ class TelegramUpdateAdapter:
     async def handleDone(self, update: Any) -> None:
         """Handle a Telegram /done update."""
 
-        response = await self.doneBatchRouter.handleDone(str(update.effective_user.id))
+        try:
+            response = await self.doneBatchRouter.handleDone(
+                str(update.effective_user.id)
+            )
+        except (EmailDeliveryError, NotesCurationError, VisionExtractionError):
+            response = PROCESSING_FAILURE_MESSAGE
         await update.effective_message.reply_text(response)
