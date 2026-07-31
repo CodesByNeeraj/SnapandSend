@@ -68,6 +68,13 @@ class TelegramRouterTests(unittest.TestCase):
 
         self.assertIn("accepted", response.lower())
 
+    def test_unsupported_upload_returns_fixed_image_only_message(self):
+        router = TelegramRouter(FakeUserStore())
+
+        response = router.handleUnsupportedUpload()
+
+        self.assertIn("image", response.lower())
+
 
 if __name__ == "__main__":
     unittest.main()
