@@ -11,6 +11,8 @@ from telegram.ext import (
 from src.config import Settings
 from src.runtime import buildRuntime
 
+TIMEOUT_CHECK_SECONDS = 30
+
 
 def buildApplication(settings: Settings) -> Application:
     """Build a configured Telegram application without starting polling."""
@@ -26,7 +28,20 @@ def buildApplication(settings: Settings) -> Application:
     application.add_handler(MessageHandler(filters.PHOTO, handlePhotoUpload))
     application.add_handler(MessageHandler(filters.Document.ALL, handleDocumentUpload))
     application.bot_data["runtime"] = runtime
+    application.job_queue.run_repeating(
+        processExpiredBatches,
+        interval=TIMEOUT_CHECK_SECONDS,
+        name="expired-batch-processor",
+    )
     return application
+
+
+async def processExpiredBatches(context: object) -> None:
+    """Run one periodic expired-batch processing cycle."""
+
+    await context.application.bot_data[
+        "runtime"
+    ].timeoutScheduler.processExpiredBatches()
 
 
 async def handlePhotoUpload(update: object, context: object) -> None:

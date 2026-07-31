@@ -1,5 +1,5 @@
 # Telegram bot framework (async)
-python-telegram-bot~=21.0
+python-telegram-bot[job-queue]~=21.0
  
 # OpenAI vision API client
 openai~=1.0
