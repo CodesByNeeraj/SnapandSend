@@ -13,6 +13,8 @@ START_MESSAGE = (
 INVALID_EMAIL_MESSAGE = "Please reply with a valid email address."
 EMAIL_SAVED_MESSAGE = "Your email has been saved. You can now send photos."
 HELP_MESSAGE = "Send a photo or document image to start a notes batch."
+EMAIL_REQUIRED_MESSAGE = "Reply with your email address before sending photos."
+IMAGE_ACCEPTED_MESSAGE = "Image accepted. Send more or use /done when ready."
 
 
 class TelegramRouter:
@@ -39,3 +41,11 @@ class TelegramRouter:
         self.userStore.saveEmail(userId, email, receivedAt)
         self.awaitingEmail.pop(userId)
         return EMAIL_SAVED_MESSAGE
+
+    def handleImageUpload(self, userId: str) -> str:
+        """Require a registered email before accepting an image upload."""
+
+        if self.userStore.getEmail(userId):
+            return IMAGE_ACCEPTED_MESSAGE
+        self.awaitingEmail[userId] = True
+        return EMAIL_REQUIRED_MESSAGE
