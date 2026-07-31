@@ -16,6 +16,11 @@ class FakeVisionExtractor:
         return ExtractedDocument("readable", "Slide title", ["First point"])
 
 
+class FailingVisionExtractor:
+    async def extractDocument(self, imageBytes):
+        raise RuntimeError("OpenAI failed")
+
+
 class FakeNotesCurator:
     async def curateNotes(self, documents):
         return CuratedNotes([CuratedDocument("Slide title", ["First point"])])
@@ -87,6 +92,19 @@ class EndToEndTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn("15 photos", response)
         self.assertEqual(len(batchManager.getPhotos("user")), 15)
+
+    async def test_extraction_failure_sends_no_partial_email(self):
+        emailClient = FakeEmailClient()
+        orchestrator = BatchOrchestrator(
+            FailingVisionExtractor(),
+            FakeNotesCurator(),
+            EmailSender(emailClient, "notes@example.com"),
+        )
+
+        with self.assertRaises(RuntimeError):
+            await orchestrator.processBatch("person@example.com", [b"image"])
+
+        self.assertEqual(emailClient.requests, [])
 
 
 if __name__ == "__main__":
