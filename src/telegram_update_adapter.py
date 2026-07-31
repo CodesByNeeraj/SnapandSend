@@ -89,3 +89,8 @@ class TelegramUpdateAdapter:
         except (EmailDeliveryError, NotesCurationError, VisionExtractionError):
             response = PROCESSING_FAILURE_MESSAGE
         await update.effective_message.reply_text(response)
+
+    async def handleUnsupportedUpload(self, update: Any) -> None:
+        """Handle a Telegram update carrying an unsupported content type."""
+
+        await update.effective_message.reply_text(self.router.handleUnsupportedUpload())

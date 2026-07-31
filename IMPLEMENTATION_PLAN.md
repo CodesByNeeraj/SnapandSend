@@ -100,7 +100,7 @@ post-processing state handling are implemented with the router and
       email prompt.
 - [x] Implement plain-text email reply handling, validation, encrypted
       persistence, and continuation of any photo waiting for email setup.
-- [ ] Implement the remaining deterministic Telegram routing for photos,
+- [x] Implement the remaining deterministic Telegram routing for photos,
       documents, commands, and unsupported input.
 - [x] Implement photo receipt acknowledgement within the 2-second target where
       practical, including the running batch count and 3-minute window message.
