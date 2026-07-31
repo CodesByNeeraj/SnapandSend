@@ -9,6 +9,7 @@ from telegram.ext import (
 )
 
 from src.config import Settings
+from src.restart_notifier import RestartNotifier
 from src.runtime import buildRuntime
 
 TIMEOUT_CHECK_SECONDS = 30
@@ -18,7 +19,12 @@ def buildApplication(settings: Settings) -> Application:
     """Build a configured Telegram application without starting polling."""
 
     runtime = buildRuntime(settings)
-    application = ApplicationBuilder().token(settings.telegramBotToken).build()
+    application = (
+        ApplicationBuilder()
+        .token(settings.telegramBotToken)
+        .post_init(notifyLostBatchesOnStartup)
+        .build()
+    )
     adapter = runtime.telegramUpdateAdapter
     application.add_handler(CommandHandler("start", adapter.handleStart))
     application.add_handler(CommandHandler("done", adapter.handleDone))
@@ -34,6 +40,13 @@ def buildApplication(settings: Settings) -> Application:
         name="expired-batch-processor",
     )
     return application
+
+
+async def notifyLostBatchesOnStartup(application: object) -> None:
+    """Warn any user left with an unrecoverable batch by a crash or restart."""
+
+    runtime = application.bot_data["runtime"]
+    await RestartNotifier(application.bot, runtime.userStore).notifyLostBatches()
 
 
 async def processExpiredBatches(context: object) -> None:

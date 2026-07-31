@@ -107,7 +107,7 @@ post-processing state handling are implemented with the router and
 - [x] Prompt for email before processing photos when no email is registered.
 - [x] Ensure a user can provide the requested email by typing a reply, without a
       `/setemail` command.
-- [ ] Connect photo handling, rate limiting, image preparation, batch management,
+- [x] Connect photo handling, rate limiting, image preparation, batch management,
       OpenAI extraction, and email delivery without blocking Telegram updates.
 - [x] Implement `/done` through the `BatchOrchestrator` using the decrypted
       registered `UserStore` email and one email delivery.
@@ -116,12 +116,12 @@ post-processing state handling are implemented with the router and
 - [x] Schedule periodic timeout-batch processing in the Telegram application.
 - [x] Compose runtime services from validated settings without live requests.
 - [x] Make `/done` with no photos return the required upload-first message.
-- [ ] Clear batch state after successful processing or unrecoverable process
+- [x] Clear batch state after successful processing or unrecoverable process
       failure, without sending partial email.
 - [x] Implement the user-facing message for unsupported files.
 - [x] Implement the user-facing message for processing failures.
 - [x] Implement the user-facing message for unreadable photo batches.
-- [ ] Implement user-facing messages for rate limits and
+- [x] Implement user-facing messages for rate limits and
       restart-related reuploads.
 - [x] Add adapter tests with mocked Telegram updates for `/start`, text, and
       `/done`.

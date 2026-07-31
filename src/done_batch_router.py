@@ -26,6 +26,7 @@ class DoneBatchRouter:
             images = self.batchManager.closeBatch(userId)
         except EmptyBatchError:
             return EMPTY_BATCH_MESSAGE
+        self.userStore.clearBatchPending(userId)
         recipientEmail = self.userStore.getEmail(userId)
         if not recipientEmail:
             return EMPTY_BATCH_MESSAGE

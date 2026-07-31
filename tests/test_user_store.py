@@ -29,6 +29,15 @@ class FakeUsersTable:
         item = self.items.get(Key["telegram_user_id"])
         return {"Item": item} if item else {}
 
+    def update_item(self, Key, UpdateExpression, ExpressionAttributeValues):
+        userId = Key["telegram_user_id"]
+        item = self.items.setdefault(userId, {"telegram_user_id": userId})
+        item["pending_batch"] = ExpressionAttributeValues[":value"]
+
+    def scan(self, FilterExpression=None):
+        items = [item for item in self.items.values() if item.get("pending_batch")]
+        return {"Items": items}
+
 
 class UserStoreTests(unittest.TestCase):
     def test_encryptor_round_trips_email_without_plaintext_storage(self):
@@ -89,6 +98,31 @@ class UserStoreTests(unittest.TestCase):
         self.assertEqual(
             table.items["telegram-user-1"]["created_at"], updatedAt.isoformat()
         )
+
+    def test_mark_batch_pending_flags_user_for_reupload_notice(self):
+        table = FakeUsersTable()
+        store = UserStore(table, KmsEmailEncryptor(FakeKmsClient(), "kms-key-id"))
+
+        store.markBatchPending("telegram-user-1")
+
+        self.assertEqual(store.getUserIdsWithPendingBatch(), ["telegram-user-1"])
+
+    def test_clear_batch_pending_removes_user_from_reupload_notice(self):
+        table = FakeUsersTable()
+        store = UserStore(table, KmsEmailEncryptor(FakeKmsClient(), "kms-key-id"))
+        store.markBatchPending("telegram-user-1")
+
+        store.clearBatchPending("telegram-user-1")
+
+        self.assertEqual(store.getUserIdsWithPendingBatch(), [])
+
+    def test_get_user_ids_with_pending_batch_ignores_unflagged_users(self):
+        store = UserStore(
+            FakeUsersTable(), KmsEmailEncryptor(FakeKmsClient(), "kms-key-id")
+        )
+        store.saveEmail("telegram-user-1", "person@example.com")
+
+        self.assertEqual(store.getUserIdsWithPendingBatch(), [])
 
 
 if __name__ == "__main__":

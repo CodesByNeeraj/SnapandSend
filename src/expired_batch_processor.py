@@ -17,6 +17,7 @@ class ExpiredBatchProcessor:
 
         expiredBatches = self.batchManager.closeExpiredBatches(currentTime)
         for userId, images in expiredBatches.items():
+            self.userStore.clearBatchPending(userId)
             recipientEmail = self.userStore.getEmail(userId)
             if recipientEmail:
                 await self.batchOrchestrator.processBatch(recipientEmail, images)
