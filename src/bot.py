@@ -67,3 +67,7 @@ def runBot() -> None:
 
     application = buildApplication(Settings.fromEnvironment())
     application.run_polling()
+
+
+if __name__ == "__main__":
+    runBot()
