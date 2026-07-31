@@ -6,6 +6,9 @@ from src.batch_manager import EmptyBatchError
 
 EMPTY_BATCH_MESSAGE = "Please upload at least one photo before using /done."
 PROCESSING_MESSAGE = "Your notes are being prepared."
+UNREADABLE_BATCH_MESSAGE = (
+    "I could not find readable text in that batch. Please try clearer photos."
+)
 
 
 class DoneBatchRouter:
@@ -26,5 +29,7 @@ class DoneBatchRouter:
         recipientEmail = self.userStore.getEmail(userId)
         if not recipientEmail:
             return EMPTY_BATCH_MESSAGE
-        await self.batchOrchestrator.processBatch(recipientEmail, images)
+        emailId = await self.batchOrchestrator.processBatch(recipientEmail, images)
+        if emailId is None:
+            return UNREADABLE_BATCH_MESSAGE
         return PROCESSING_MESSAGE
