@@ -1,6 +1,7 @@
 import unittest
 
 from src.telegram_update_adapter import TelegramUpdateAdapter
+from src.vision_extractor import VisionExtractionError
 
 
 class FakeMessage:
@@ -38,6 +39,11 @@ class FakePhotoBatchRouter:
 class FakeDoneBatchRouter:
     async def handleDone(self, userId):
         return "Your notes are being prepared."
+
+
+class FailingDoneBatchRouter:
+    async def handleDone(self, userId):
+        raise VisionExtractionError("failed")
 
 
 class FakeDownloadedFile:
@@ -78,6 +84,14 @@ class TelegramUpdateAdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             update.effective_message.replies, ["Your notes are being prepared."]
         )
+
+    async def test_done_replies_with_processing_failure_message(self):
+        update = FakeUpdate()
+        adapter = TelegramUpdateAdapter(
+            FakeRouter(), doneBatchRouter=FailingDoneBatchRouter()
+        )
+        await adapter.handleDone(update)
+        self.assertIn("could not process", update.effective_message.replies[0])
 
 
 if __name__ == "__main__":
