@@ -86,13 +86,14 @@ post-processing state handling are implemented with the router and
 
 ## 7. Email delivery
 
-- [ ] Implement Markdown note rendering for the email body.
-- [ ] Implement Resend delivery to the user's decrypted registered email.
-- [ ] Send exactly one combined email per completed batch.
-- [ ] Prevent email delivery when the batch fails or the process restarts before
-      completion.
-- [ ] Add tests for formatting, recipient handling, one-email-per-batch, and
-      mocked Resend failures.
+- [x] Implement Markdown note rendering for the email body.
+- [x] Implement Resend delivery to a provided registered recipient email.
+- [x] Send at most one combined email for a successfully curated batch.
+- [x] Prevent delivery when extraction fails or curation yields no notes.
+- [x] Add mocked tests for formatting, recipient handling, delivery failures,
+      and one-email behavior.
+- [ ] Resolve the recipient from the decrypted `UserStore` email during
+      Telegram and orchestration integration.
 
 ## 8. Telegram routing and batch orchestration
 
