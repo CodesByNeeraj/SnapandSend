@@ -114,6 +114,7 @@ post-processing state handling are implemented with the router and
       registered `UserStore` email and one email delivery.
 - [x] Process timeout-closed batches through the `BatchOrchestrator` using the
       decrypted registered `UserStore` email.
+- [x] Provide a scheduler trigger for periodic timeout-batch processing.
 - [x] Make `/done` with no photos return the required upload-first message.
 - [ ] Clear batch state after successful processing or unrecoverable process
       failure, without sending partial email.
