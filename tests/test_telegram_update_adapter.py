@@ -31,6 +31,14 @@ class FakeRouter:
         return "Image accepted. Send more or use /done when ready."
 
 
+class AwaitingEmailRouter(FakeRouter):
+    def handleImageUpload(self, userId):
+        return "Reply with your email address before sending photos."
+
+    def handleText(self, userId, text, receivedAt):
+        return "Your email has been saved. You can now send photos."
+
+
 class FakePhotoBatchRouter:
     def acceptImage(self, userId, userName, imageBytes, receivedAt):
         return "Image accepted (1/15)."
@@ -74,6 +82,24 @@ class TelegramUpdateAdapterTests(unittest.IsolatedAsyncioTestCase):
         adapter = TelegramUpdateAdapter(FakeRouter(), FakePhotoBatchRouter())
         await adapter.handleImageUpload(update, "image/jpeg", 10, FakeTelegramFile())
         self.assertEqual(update.effective_message.replies, ["Image accepted (1/15)."])
+
+    async def test_email_reply_continues_pending_image_upload(self):
+        adapter = TelegramUpdateAdapter(AwaitingEmailRouter(), FakePhotoBatchRouter())
+        uploadUpdate = FakeUpdate()
+        await adapter.handleImageUpload(
+            uploadUpdate, "image/jpeg", 10, FakeTelegramFile()
+        )
+        emailUpdate = FakeUpdate("person@example.com")
+
+        await adapter.handleText(emailUpdate)
+
+        self.assertEqual(
+            emailUpdate.effective_message.replies,
+            [
+                "Your email has been saved. You can now send photos.",
+                "Image accepted (1/15).",
+            ],
+        )
 
     async def test_done_replies_with_done_router_response(self):
         update = FakeUpdate()

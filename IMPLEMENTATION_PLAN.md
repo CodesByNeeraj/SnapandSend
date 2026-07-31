@@ -134,7 +134,7 @@ post-processing state handling are implemented with the router and
 - [x] Test an 8-photo batch and verify order and exactly one email.
 - [x] Test the 15-photo batch limit.
 - [ ] Verify the under-60-second delivery target.
-- [ ] Test photo-before-email registration and automatic continuation after the
+- [x] Test photo-before-email registration and automatic continuation after the
       user replies with a valid email address.
 - [ ] Test process-failure behavior and confirm no partial email is sent.
 - [ ] Review logs to confirm image content, extracted text, email addresses,
