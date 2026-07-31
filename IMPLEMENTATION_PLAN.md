@@ -110,9 +110,9 @@ post-processing state handling are implemented with the router and
       `/setemail` command.
 - [ ] Connect photo handling, rate limiting, image preparation, batch management,
       OpenAI extraction, and email delivery without blocking Telegram updates.
-- [ ] Implement the `BatchOrchestrator` to process timeout closures and
-      `/done` through vision extraction, note curation, and one email delivery.
-- [ ] Make `/done` with no photos return the required upload-first message.
+- [x] Implement `/done` through the `BatchOrchestrator` using the decrypted
+      registered `UserStore` email and one email delivery.
+- [x] Make `/done` with no photos return the required upload-first message.
 - [ ] Clear batch state after successful processing or unrecoverable process
       failure, without sending partial email.
 - [ ] Implement user-facing messages for unsupported files, rate limits,
