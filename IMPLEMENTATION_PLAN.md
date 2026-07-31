@@ -120,7 +120,8 @@ post-processing state handling are implemented with the router and
 - [x] Implement the user-facing message for unsupported files.
 - [ ] Implement user-facing messages for rate limits,
       unreadable photos, processing failures, and restart-related reuploads.
-- [ ] Add handler tests with mocked Telegram updates and external services.
+- [x] Add adapter tests with mocked Telegram updates for `/start` and text.
+- [ ] Add upload and external-service handler tests.
 
 ## 9. End-to-end behavior and performance
 
