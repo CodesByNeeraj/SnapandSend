@@ -112,6 +112,8 @@ post-processing state handling are implemented with the router and
       OpenAI extraction, and email delivery without blocking Telegram updates.
 - [x] Implement `/done` through the `BatchOrchestrator` using the decrypted
       registered `UserStore` email and one email delivery.
+- [x] Process timeout-closed batches through the `BatchOrchestrator` using the
+      decrypted registered `UserStore` email.
 - [x] Make `/done` with no photos return the required upload-first message.
 - [ ] Clear batch state after successful processing or unrecoverable process
       failure, without sending partial email.
