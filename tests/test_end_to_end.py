@@ -39,11 +39,19 @@ class FakeUserStore:
     def getEmail(self, userId):
         return "person@example.com"
 
+    def markBatchPending(self, userId):
+        pass
+
+    def clearBatchPending(self, userId):
+        pass
+
 
 class EndToEndTests(unittest.IsolatedAsyncioTestCase):
     async def test_clear_image_batch_sends_one_formatted_email(self):
         batchManager = BatchManager()
-        photoRouter = PhotoBatchRouter(RateLimiter(), batchManager, lambda image: image)
+        photoRouter = PhotoBatchRouter(
+            RateLimiter(), batchManager, lambda image: image, FakeUserStore()
+        )
         emailClient = FakeEmailClient()
         orchestrator = BatchOrchestrator(
             FakeVisionExtractor(),
@@ -64,7 +72,9 @@ class EndToEndTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_eight_image_batch_preserves_order_and_sends_one_email(self):
         batchManager = BatchManager()
-        photoRouter = PhotoBatchRouter(RateLimiter(), batchManager, lambda image: image)
+        photoRouter = PhotoBatchRouter(
+            RateLimiter(), batchManager, lambda image: image, FakeUserStore()
+        )
         emailClient = FakeEmailClient()
         orchestrator = BatchOrchestrator(
             FakeVisionExtractor(),
@@ -83,7 +93,9 @@ class EndToEndTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_sixteenth_image_is_rejected_at_batch_limit(self):
         batchManager = BatchManager()
-        photoRouter = PhotoBatchRouter(RateLimiter(), batchManager, lambda image: image)
+        photoRouter = PhotoBatchRouter(
+            RateLimiter(), batchManager, lambda image: image, FakeUserStore()
+        )
         now = datetime.now(timezone.utc)
 
         for index in range(15):

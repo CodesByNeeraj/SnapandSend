@@ -9,8 +9,14 @@ class FakeBatchManager:
 
 
 class FakeUserStore:
+    def __init__(self):
+        self.pendingClears = []
+
     def getEmail(self, userId):
         return f"{userId}@example.com"
+
+    def clearBatchPending(self, userId):
+        self.pendingClears.append(userId)
 
 
 class FakeOrchestrator:
@@ -24,15 +30,15 @@ class FakeOrchestrator:
 class ExpiredBatchProcessorTests(unittest.IsolatedAsyncioTestCase):
     async def test_process_expired_batches_uses_registered_emails(self):
         orchestrator = FakeOrchestrator()
-        processor = ExpiredBatchProcessor(
-            FakeBatchManager(), FakeUserStore(), orchestrator
-        )
+        userStore = FakeUserStore()
+        processor = ExpiredBatchProcessor(FakeBatchManager(), userStore, orchestrator)
         count = await processor.processExpiredBatches("now")
         self.assertEqual(count, 2)
         self.assertEqual(
             orchestrator.requests,
             [("one@example.com", [b"first"]), ("two@example.com", [b"second"])],
         )
+        self.assertEqual(userStore.pendingClears, ["one", "two"])
 
 
 if __name__ == "__main__":

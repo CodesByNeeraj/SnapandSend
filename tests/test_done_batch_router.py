@@ -15,8 +15,14 @@ class FakeBatchManager:
 
 
 class FakeUserStore:
+    def __init__(self):
+        self.pendingClears = []
+
     def getEmail(self, userId):
         return "person@example.com"
+
+    def clearBatchPending(self, userId):
+        self.pendingClears.append(userId)
 
 
 class FakeOrchestrator:
@@ -37,19 +43,19 @@ class EmptyNotesOrchestrator(FakeOrchestrator):
 class DoneBatchRouterTests(unittest.IsolatedAsyncioTestCase):
     async def test_done_closes_batch_and_uses_registered_email(self):
         orchestrator = FakeOrchestrator()
-        router = DoneBatchRouter(
-            FakeBatchManager([b"image"]), FakeUserStore(), orchestrator
-        )
+        userStore = FakeUserStore()
+        router = DoneBatchRouter(FakeBatchManager([b"image"]), userStore, orchestrator)
         response = await router.handleDone("user")
         self.assertIn("being prepared", response)
         self.assertEqual(orchestrator.requests, [("person@example.com", [b"image"])])
+        self.assertEqual(userStore.pendingClears, ["user"])
 
     async def test_done_with_no_photos_returns_upload_first_message(self):
-        router = DoneBatchRouter(
-            FakeBatchManager(), FakeUserStore(), FakeOrchestrator()
-        )
+        userStore = FakeUserStore()
+        router = DoneBatchRouter(FakeBatchManager(), userStore, FakeOrchestrator())
         response = await router.handleDone("user")
         self.assertIn("upload", response.lower())
+        self.assertEqual(userStore.pendingClears, [])
 
     async def test_done_with_no_usable_notes_returns_clearer_photo_message(self):
         router = DoneBatchRouter(

@@ -43,6 +43,7 @@ class Runtime:
     telegramRouter: TelegramRouter
     telegramUpdateAdapter: TelegramUpdateAdapter
     timeoutScheduler: TimeoutScheduler
+    userStore: UserStore
 
 
 def buildRuntime(settings: Settings) -> Runtime:
@@ -64,7 +65,9 @@ def buildRuntime(settings: Settings) -> Runtime:
         batchManager, userStore, batchOrchestrator
     )
     telegramRouter = TelegramRouter(userStore)
-    photoBatchRouter = PhotoBatchRouter(RateLimiter(), batchManager, prepareImage)
+    photoBatchRouter = PhotoBatchRouter(
+        RateLimiter(), batchManager, prepareImage, userStore
+    )
     doneBatchRouter = DoneBatchRouter(batchManager, userStore, batchOrchestrator)
     return Runtime(
         telegramRouter=telegramRouter,
@@ -72,4 +75,5 @@ def buildRuntime(settings: Settings) -> Runtime:
             telegramRouter, photoBatchRouter, doneBatchRouter
         ),
         timeoutScheduler=TimeoutScheduler(expiredBatchProcessor),
+        userStore=userStore,
     )

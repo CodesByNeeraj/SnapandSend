@@ -4,6 +4,8 @@ import base64
 from datetime import datetime, timezone
 from typing import Any
 
+from boto3.dynamodb.conditions import Attr
+
 KMS_EMAIL_ENCRYPTION_PURPOSE = "snap-and-send-user-email"
 
 
@@ -76,3 +78,26 @@ class UserStore:
         if not item:
             return None
         return self.emailEncryptor.decryptEmail(userId, item["email"])
+
+    def markBatchPending(self, userId: str) -> None:
+        """Flag that a user has an unclosed batch held only in process memory."""
+
+        self._setPendingBatch(userId, True)
+
+    def clearBatchPending(self, userId: str) -> None:
+        """Clear a user's pending batch flag once it is closed or resolved."""
+
+        self._setPendingBatch(userId, False)
+
+    def _setPendingBatch(self, userId: str, pending: bool) -> None:
+        self.usersTable.update_item(
+            Key={"telegram_user_id": userId},
+            UpdateExpression="SET pending_batch = :value",
+            ExpressionAttributeValues={":value": pending},
+        )
+
+    def getUserIdsWithPendingBatch(self) -> list[str]:
+        """Return user ids left with a pending batch by a crash or restart."""
+
+        response = self.usersTable.scan(FilterExpression=Attr("pending_batch").eq(True))
+        return [item["telegram_user_id"] for item in response.get("Items", [])]
