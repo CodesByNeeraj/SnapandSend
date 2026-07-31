@@ -1,6 +1,6 @@
 import unittest
 
-from src.email_sender import EmailSender, renderEmailBody
+from src.email_sender import EmailDeliveryError, EmailSender, renderEmailBody
 from src.notes_curator import CuratedDocument, CuratedNotes
 
 
@@ -52,6 +52,17 @@ class EmailSenderTests(unittest.TestCase):
 
         self.assertIsNone(result)
         self.assertEqual(client.requests, [])
+
+    def test_send_notes_propagates_resend_failure(self):
+        client = FakeEmailClient()
+        client.send = lambda request: (_ for _ in ()).throw(RuntimeError("failed"))
+        sender = EmailSender(client, "notes@example.com")
+        notes = CuratedNotes(
+            documents=[CuratedDocument(title="Slide title", bullets=["First point"])]
+        )
+
+        with self.assertRaises(EmailDeliveryError):
+            sender.sendNotesEmail("person@example.com", notes)
 
 
 if __name__ == "__main__":
