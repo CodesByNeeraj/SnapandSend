@@ -35,6 +35,11 @@ class FakePhotoBatchRouter:
         return "Image accepted (1/15)."
 
 
+class FakeDoneBatchRouter:
+    async def handleDone(self, userId):
+        return "Your notes are being prepared."
+
+
 class FakeDownloadedFile:
     async def download_as_bytearray(self):
         return bytearray(b"image")
@@ -63,6 +68,16 @@ class TelegramUpdateAdapterTests(unittest.IsolatedAsyncioTestCase):
         adapter = TelegramUpdateAdapter(FakeRouter(), FakePhotoBatchRouter())
         await adapter.handleImageUpload(update, "image/jpeg", 10, FakeTelegramFile())
         self.assertEqual(update.effective_message.replies, ["Image accepted (1/15)."])
+
+    async def test_done_replies_with_done_router_response(self):
+        update = FakeUpdate()
+        adapter = TelegramUpdateAdapter(
+            FakeRouter(), doneBatchRouter=FakeDoneBatchRouter()
+        )
+        await adapter.handleDone(update)
+        self.assertEqual(
+            update.effective_message.replies, ["Your notes are being prepared."]
+        )
 
 
 if __name__ == "__main__":

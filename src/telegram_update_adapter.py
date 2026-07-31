@@ -11,9 +11,15 @@ from src.telegram_router import IMAGE_ACCEPTED_MESSAGE
 class TelegramUpdateAdapter:
     """Converts Telegram updates into router calls and replies."""
 
-    def __init__(self, router: Any, photoBatchRouter: Any | None = None):
+    def __init__(
+        self,
+        router: Any,
+        photoBatchRouter: Any | None = None,
+        doneBatchRouter: Any | None = None,
+    ):
         self.router = router
         self.photoBatchRouter = photoBatchRouter
+        self.doneBatchRouter = doneBatchRouter
 
     async def handleStart(self, update: Any) -> None:
         """Handle a Telegram /start update."""
@@ -53,4 +59,10 @@ class TelegramUpdateAdapter:
             imageBytes,
             datetime.now(timezone.utc),
         )
+        await update.effective_message.reply_text(response)
+
+    async def handleDone(self, update: Any) -> None:
+        """Handle a Telegram /done update."""
+
+        response = await self.doneBatchRouter.handleDone(str(update.effective_user.id))
         await update.effective_message.reply_text(response)
