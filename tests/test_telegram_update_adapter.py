@@ -30,6 +30,9 @@ class FakeRouter:
     def handleImageUpload(self, userId):
         return "Image accepted. Send more or use /done when ready."
 
+    def handleUnsupportedUpload(self):
+        return "Only image files are supported."
+
 
 class AwaitingEmailRouter(FakeRouter):
     def handleImageUpload(self, userId):
@@ -118,6 +121,14 @@ class TelegramUpdateAdapterTests(unittest.IsolatedAsyncioTestCase):
         )
         await adapter.handleDone(update)
         self.assertIn("could not process", update.effective_message.replies[0])
+
+    async def test_unsupported_upload_replies_with_router_response(self):
+        update = FakeUpdate()
+        adapter = TelegramUpdateAdapter(FakeRouter())
+        await adapter.handleUnsupportedUpload(update)
+        self.assertEqual(
+            update.effective_message.replies, ["Only image files are supported."]
+        )
 
 
 if __name__ == "__main__":

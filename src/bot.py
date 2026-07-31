@@ -33,6 +33,7 @@ def buildApplication(settings: Settings) -> Application:
     )
     application.add_handler(MessageHandler(filters.PHOTO, handlePhotoUpload))
     application.add_handler(MessageHandler(filters.Document.ALL, handleDocumentUpload))
+    application.add_handler(MessageHandler(filters.ALL, handleUnsupportedMessage))
     application.bot_data["runtime"] = runtime
     application.job_queue.run_repeating(
         processExpiredBatches,
@@ -73,6 +74,13 @@ async def handleDocumentUpload(update: object, context: object) -> None:
     await adapter.handleImageUpload(
         update, document.mime_type, document.file_size or 0, document
     )
+
+
+async def handleUnsupportedMessage(update: object, context: object) -> None:
+    """Adapt any other Telegram update to the fixed unsupported-upload reply."""
+
+    adapter = context.application.bot_data["runtime"].telegramUpdateAdapter
+    await adapter.handleUnsupportedUpload(update)
 
 
 def runBot() -> None:
