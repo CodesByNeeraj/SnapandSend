@@ -11,8 +11,7 @@ and note formatting.
 - [x] Confirm the local Python version matches the CI target.
 - [x] Confirm the existing virtual environment has the application dependencies
       and test tooling installed.
-- [ ] Add a safe environment-variable template if one is needed, without real
-      credentials.
+- [x] Add a safe environment-variable template without real credentials.
 - [ ] Decide the initial module import strategy so `src/` and `tests/` work both
       locally and in CI.
 
@@ -144,7 +143,7 @@ post-processing state handling are implemented with the router and
 
 - [x] Add a Telegram long-polling entrypoint with `/start`, `/done`, text,
       photo, and document handler registration.
-- [ ] Add local setup and runtime instructions to the project documentation.
+- [x] Add local setup and runtime instructions to the project documentation.
 - [ ] Document required Telegram bot, OpenAI, DynamoDB/KMS, Resend, and Railway
       configuration without including secrets.
 - [ ] Create the DynamoDB users table in `ap-southeast-1` with on-demand billing.
