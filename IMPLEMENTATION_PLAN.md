@@ -117,7 +117,8 @@ post-processing state handling are implemented with the router and
 - [x] Make `/done` with no photos return the required upload-first message.
 - [ ] Clear batch state after successful processing or unrecoverable process
       failure, without sending partial email.
-- [ ] Implement user-facing messages for unsupported files, rate limits,
+- [x] Implement the user-facing message for unsupported files.
+- [ ] Implement user-facing messages for rate limits,
       unreadable photos, processing failures, and restart-related reuploads.
 - [ ] Add handler tests with mocked Telegram updates and external services.
 
