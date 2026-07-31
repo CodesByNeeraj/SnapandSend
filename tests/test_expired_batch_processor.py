@@ -14,14 +14,19 @@ class FakeUserStore:
 
 
 class FakeOrchestrator:
-    def __init__(self): self.requests = []
-    async def processBatch(self, email, images): self.requests.append((email, images))
+    def __init__(self):
+        self.requests = []
+
+    async def processBatch(self, email, images):
+        self.requests.append((email, images))
 
 
 class ExpiredBatchProcessorTests(unittest.IsolatedAsyncioTestCase):
     async def test_process_expired_batches_uses_registered_emails(self):
         orchestrator = FakeOrchestrator()
-        processor = ExpiredBatchProcessor(FakeBatchManager(), FakeUserStore(), orchestrator)
+        processor = ExpiredBatchProcessor(
+            FakeBatchManager(), FakeUserStore(), orchestrator
+        )
         count = await processor.processExpiredBatches("now")
         self.assertEqual(count, 2)
         self.assertEqual(
@@ -30,4 +35,5 @@ class ExpiredBatchProcessorTests(unittest.IsolatedAsyncioTestCase):
         )
 
 
-if __name__ == "__main__": unittest.main()
+if __name__ == "__main__":
+    unittest.main()
