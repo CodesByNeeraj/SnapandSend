@@ -3,12 +3,17 @@
 from datetime import datetime, timezone
 from typing import Any
 
+from src.image_intake import FileSizeLimitError, UnsupportedImageError
+from src.image_intake import downloadImageBytes, validateImageUpload
+from src.telegram_router import IMAGE_ACCEPTED_MESSAGE
+
 
 class TelegramUpdateAdapter:
     """Converts Telegram updates into router calls and replies."""
 
-    def __init__(self, router: Any):
+    def __init__(self, router: Any, photoBatchRouter: Any | None = None):
         self.router = router
+        self.photoBatchRouter = photoBatchRouter
 
     async def handleStart(self, update: Any) -> None:
         """Handle a Telegram /start update."""
@@ -23,5 +28,29 @@ class TelegramUpdateAdapter:
         receivedAt = datetime.now(timezone.utc)
         response = self.router.handleText(
             userId, update.effective_message.text, receivedAt
+        )
+        await update.effective_message.reply_text(response)
+
+    async def handleImageUpload(
+        self, update: Any, mimeType: str | None, fileSize: int, telegramFile: Any
+    ) -> None:
+        """Validate, download, and add one Telegram image to its batch."""
+
+        try:
+            validateImageUpload(mimeType, fileSize)
+        except (UnsupportedImageError, FileSizeLimitError) as error:
+            await update.effective_message.reply_text(str(error))
+            return
+        userId = str(update.effective_user.id)
+        gateResponse = self.router.handleImageUpload(userId)
+        if gateResponse != IMAGE_ACCEPTED_MESSAGE:
+            await update.effective_message.reply_text(gateResponse)
+            return
+        imageBytes = await downloadImageBytes(telegramFile)
+        response = self.photoBatchRouter.acceptImage(
+            userId,
+            update.effective_user.username,
+            imageBytes,
+            datetime.now(timezone.utc),
         )
         await update.effective_message.reply_text(response)
