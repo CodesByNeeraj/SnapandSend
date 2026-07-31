@@ -7,6 +7,10 @@ from src.notes_curator import CuratedNotes
 EMAIL_SUBJECT = "Your Snap&Send notes"
 
 
+class EmailDeliveryError(RuntimeError):
+    """Raised when Resend cannot deliver a completed notes email."""
+
+
 def renderEmailBody(notes: CuratedNotes) -> str:
     """Render curated notes as ordered plain-text Markdown."""
 
@@ -30,12 +34,15 @@ class EmailSender:
         if not notes.documents:
             return None
 
-        response = self.client.send(
-            {
-                "from": self.fromEmail,
-                "to": [recipientEmail],
-                "subject": EMAIL_SUBJECT,
-                "text": renderEmailBody(notes),
-            }
-        )
+        try:
+            response = self.client.send(
+                {
+                    "from": self.fromEmail,
+                    "to": [recipientEmail],
+                    "subject": EMAIL_SUBJECT,
+                    "text": renderEmailBody(notes),
+                }
+            )
+        except RuntimeError as error:
+            raise EmailDeliveryError("Resend delivery failed") from error
         return response["id"]
