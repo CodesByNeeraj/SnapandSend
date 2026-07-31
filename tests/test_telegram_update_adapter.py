@@ -16,6 +16,7 @@ class FakeUpdate:
     def __init__(self, text="hello"):
         self.effective_user = type("User", (), {"id": 12})()
         self.effective_message = FakeMessage(text)
+        self.effective_user.username = "user"
 
 
 class FakeRouter:
@@ -24,6 +25,24 @@ class FakeRouter:
 
     def handleText(self, userId, text, receivedAt):
         return f"text: {text}"
+
+    def handleImageUpload(self, userId):
+        return "Image accepted. Send more or use /done when ready."
+
+
+class FakePhotoBatchRouter:
+    def acceptImage(self, userId, userName, imageBytes, receivedAt):
+        return "Image accepted (1/15)."
+
+
+class FakeDownloadedFile:
+    async def download_as_bytearray(self):
+        return bytearray(b"image")
+
+
+class FakeTelegramFile:
+    async def get_file(self):
+        return FakeDownloadedFile()
 
 
 class TelegramUpdateAdapterTests(unittest.IsolatedAsyncioTestCase):
@@ -38,6 +57,12 @@ class TelegramUpdateAdapterTests(unittest.IsolatedAsyncioTestCase):
         adapter = TelegramUpdateAdapter(FakeRouter())
         await adapter.handleText(update)
         self.assertEqual(update.effective_message.replies, ["text: person@example.com"])
+
+    async def test_image_upload_replies_with_batch_acknowledgement(self):
+        update = FakeUpdate()
+        adapter = TelegramUpdateAdapter(FakeRouter(), FakePhotoBatchRouter())
+        await adapter.handleImageUpload(update, "image/jpeg", 10, FakeTelegramFile())
+        self.assertEqual(update.effective_message.replies, ["Image accepted (1/15)."])
 
 
 if __name__ == "__main__":
