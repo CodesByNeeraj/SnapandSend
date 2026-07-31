@@ -15,6 +15,7 @@ EMAIL_SAVED_MESSAGE = "Your email has been saved. You can now send photos."
 HELP_MESSAGE = "Send a photo or document image to start a notes batch."
 EMAIL_REQUIRED_MESSAGE = "Reply with your email address before sending photos."
 IMAGE_ACCEPTED_MESSAGE = "Image accepted. Send more or use /done when ready."
+UNSUPPORTED_UPLOAD_MESSAGE = "Only image files are supported."
 
 
 class TelegramRouter:
@@ -49,3 +50,8 @@ class TelegramRouter:
             return IMAGE_ACCEPTED_MESSAGE
         self.awaitingEmail[userId] = True
         return EMAIL_REQUIRED_MESSAGE
+
+    def handleUnsupportedUpload(self) -> str:
+        """Return the fixed response for non-image uploads."""
+
+        return UNSUPPORTED_UPLOAD_MESSAGE
