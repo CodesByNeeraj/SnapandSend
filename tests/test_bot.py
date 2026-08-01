@@ -83,7 +83,7 @@ class BotTests(unittest.TestCase):
             runtime.return_value.telegramUpdateAdapter.handleText = object()
             with patch("src.bot.ApplicationBuilder", return_value=FakeBuilder()):
                 application = buildApplication(buildTestSettings())
-        self.assertEqual(len(application.handlers), 6)
+        self.assertEqual(len(application.handlers), 7)
         self.assertIn("runtime", application.bot_data)
         self.assertIsNotNone(application.post_init)
 
@@ -117,6 +117,21 @@ class RegisteredHandlerCallbackTests(unittest.IsolatedAsyncioTestCase):
         adapter.handleStart.assert_awaited_once_with(update)
         adapter.handleDone.assert_awaited_once_with(update)
         adapter.handleText.assert_awaited_once_with(update)
+
+    async def test_csat_callback_handler_dispatches_with_update_and_context(self):
+        with patch("src.bot.buildRuntime") as runtime:
+            adapter = runtime.return_value.telegramUpdateAdapter
+            adapter.handleCsatRating = AsyncMock()
+            with patch("src.bot.ApplicationBuilder", return_value=FakeBuilder()):
+                application = buildApplication(buildTestSettings())
+
+        update = object()
+        context = FakeContext(application)
+        csatHandler = application.handlers[6]
+
+        await csatHandler.callback(update, context)
+
+        adapter.handleCsatRating.assert_awaited_once_with(update)
 
 
 class NotifyLostBatchesOnStartupTests(unittest.IsolatedAsyncioTestCase):

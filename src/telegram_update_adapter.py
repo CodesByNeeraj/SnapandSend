@@ -4,6 +4,8 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Any
 
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
 from src.done_batch_router import (
     EMPTY_BATCH_MESSAGE,
     PROCESSING_STARTED_MESSAGE,
@@ -13,10 +15,32 @@ from src.image_intake import FileSizeLimitError, UnsupportedImageError
 from src.image_intake import downloadImageBytes, validateImageUpload
 from src.email_sender import EmailDeliveryError
 from src.notes_curator import NotesCurationError
+from src.satisfaction_survey import (
+    CSAT_CALLBACK_PREFIX,
+    SURVEY_MESSAGE,
+    THANK_YOU_MESSAGE,
+    shouldPromptForSatisfaction,
+)
 from src.telegram_router import EMAIL_SAVED_MESSAGE, IMAGE_ACCEPTED_MESSAGE
 from src.vision_extractor import VisionExtractionError
 
 PROCESSING_FAILURE_MESSAGE = "I could not process this batch. Please try again."
+
+
+def buildSurveyKeyboard() -> InlineKeyboardMarkup:
+    """Build a two-row 1-10 CSAT rating keyboard."""
+
+    def ratingButton(score: int) -> InlineKeyboardButton:
+        return InlineKeyboardButton(
+            str(score), callback_data=f"{CSAT_CALLBACK_PREFIX}{score}"
+        )
+
+    return InlineKeyboardMarkup(
+        [
+            [ratingButton(score) for score in range(1, 6)],
+            [ratingButton(score) for score in range(6, 11)],
+        ]
+    )
 
 
 class TelegramUpdateAdapter:
@@ -27,10 +51,12 @@ class TelegramUpdateAdapter:
         router: Any,
         photoBatchRouter: Any | None = None,
         doneBatchRouter: Any | None = None,
+        userStore: Any | None = None,
     ):
         self.router = router
         self.photoBatchRouter = photoBatchRouter
         self.doneBatchRouter = doneBatchRouter
+        self.userStore = userStore
         self.pendingUploads: dict[str, tuple[str | None, bytes, datetime]] = {}
 
     async def handleStart(self, update: Any) -> None:
@@ -105,16 +131,22 @@ class TelegramUpdateAdapter:
 
         await update.effective_message.reply_text(PROCESSING_STARTED_MESSAGE)
         return asyncio.create_task(
-            self._completeProcessingAndNotify(update, recipientEmail, images)
+            self._completeProcessingAndNotify(update, userId, recipientEmail, images)
         )
 
     async def _completeProcessingAndNotify(
-        self, update: Any, recipientEmail: str, images: list[bytes]
+        self, update: Any, userId: str, recipientEmail: str, images: list[bytes]
     ) -> None:
         """Finish processing a closed batch and report the outcome."""
 
-        response = await self._resolveProcessingOutcome(recipientEmail, images)
+        response, usageCount = await self._resolveProcessingOutcome(
+            userId, recipientEmail, images
+        )
         await update.effective_message.reply_text(response)
+        if usageCount is not None and shouldPromptForSatisfaction(usageCount):
+            await update.effective_message.reply_text(
+                SURVEY_MESSAGE, reply_markup=buildSurveyKeyboard()
+            )
 
     async def notifyExpiredBatchProcessing(
         self, bot: Any, userId: str, recipientEmail: str, images: list[bytes]
@@ -124,16 +156,34 @@ class TelegramUpdateAdapter:
         user never explicitly closed themselves."""
 
         await bot.send_message(chat_id=userId, text=PROCESSING_STARTED_MESSAGE)
-        response = await self._resolveProcessingOutcome(recipientEmail, images)
+        response, usageCount = await self._resolveProcessingOutcome(
+            userId, recipientEmail, images
+        )
         await bot.send_message(chat_id=userId, text=response)
+        if usageCount is not None and shouldPromptForSatisfaction(usageCount):
+            await bot.send_message(
+                chat_id=userId, text=SURVEY_MESSAGE, reply_markup=buildSurveyKeyboard()
+            )
 
     async def _resolveProcessingOutcome(
-        self, recipientEmail: str, images: list[bytes]
-    ) -> str:
+        self, userId: str, recipientEmail: str, images: list[bytes]
+    ) -> tuple[str, int | None]:
         try:
-            return await self.doneBatchRouter.completeProcessing(recipientEmail, images)
+            return await self.doneBatchRouter.completeProcessing(
+                recipientEmail, images, userId
+            )
         except (EmailDeliveryError, NotesCurationError, VisionExtractionError):
-            return PROCESSING_FAILURE_MESSAGE
+            return PROCESSING_FAILURE_MESSAGE, None
+
+    async def handleCsatRating(self, update: Any) -> None:
+        """Record a tapped CSAT rating and replace the buttons with thanks."""
+
+        query = update.callback_query
+        userId = str(query.from_user.id)
+        score = int(query.data.removeprefix(CSAT_CALLBACK_PREFIX))
+        self.userStore.recordCsatScore(userId, score, datetime.now(timezone.utc))
+        await query.answer()
+        await query.edit_message_text(THANK_YOU_MESSAGE)
 
     async def handleUnsupportedUpload(self, update: Any) -> None:
         """Handle a Telegram update carrying an unsupported content type."""

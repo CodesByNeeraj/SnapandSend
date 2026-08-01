@@ -24,12 +24,17 @@ class FakeUserStore:
     def __init__(self, email="person@example.com"):
         self.email = email
         self.pendingClears = []
+        self.usageCounts = {}
 
     def getEmail(self, userId):
         return self.email
 
     def clearBatchPending(self, userId):
         self.pendingClears.append(userId)
+
+    def incrementUsageCount(self, userId):
+        self.usageCounts[userId] = self.usageCounts.get(userId, 0) + 1
+        return self.usageCounts[userId]
 
 
 class FakeOrchestrator:
@@ -75,21 +80,30 @@ class CloseBatchForProcessingTests(unittest.TestCase):
 
 
 class CompleteProcessingTests(unittest.IsolatedAsyncioTestCase):
-    async def test_returns_email_sent_message_on_successful_delivery(self):
+    async def test_returns_email_sent_message_and_usage_count_on_success(self):
         orchestrator = FakeOrchestrator()
-        router = DoneBatchRouter(None, None, orchestrator)
+        userStore = FakeUserStore()
+        router = DoneBatchRouter(None, userStore, orchestrator)
 
-        response = await router.completeProcessing("person@example.com", [b"image"])
+        response, usageCount = await router.completeProcessing(
+            "person@example.com", [b"image"], "user"
+        )
 
         self.assertEqual(response, EMAIL_SENT_MESSAGE)
+        self.assertEqual(usageCount, 1)
         self.assertEqual(orchestrator.requests, [("person@example.com", [b"image"])])
 
-    async def test_returns_unreadable_batch_message_when_curation_is_empty(self):
-        router = DoneBatchRouter(None, None, EmptyNotesOrchestrator())
+    async def test_returns_unreadable_batch_message_and_no_usage_count(self):
+        userStore = FakeUserStore()
+        router = DoneBatchRouter(None, userStore, EmptyNotesOrchestrator())
 
-        response = await router.completeProcessing("person@example.com", [b"image"])
+        response, usageCount = await router.completeProcessing(
+            "person@example.com", [b"image"], "user"
+        )
 
         self.assertEqual(response, UNREADABLE_BATCH_MESSAGE)
+        self.assertIsNone(usageCount)
+        self.assertEqual(userStore.usageCounts, {})
 
 
 class MessageConstantTests(unittest.TestCase):

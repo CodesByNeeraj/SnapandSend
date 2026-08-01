@@ -29,10 +29,23 @@ class FakeUsersTable:
         item = self.items.get(Key["telegram_user_id"])
         return {"Item": item} if item else {}
 
-    def update_item(self, Key, UpdateExpression, ExpressionAttributeValues):
+    def update_item(
+        self, Key, UpdateExpression, ExpressionAttributeValues, ReturnValues=None
+    ):
         userId = Key["telegram_user_id"]
         item = self.items.setdefault(userId, {"telegram_user_id": userId})
-        item["pending_batch"] = ExpressionAttributeValues[":value"]
+        if "pending_batch" in UpdateExpression:
+            item["pending_batch"] = ExpressionAttributeValues[":value"]
+        elif "usage_count" in UpdateExpression:
+            item["usage_count"] = (
+                item.get("usage_count", 0) + ExpressionAttributeValues[":one"]
+            )
+        elif "csat" in UpdateExpression:
+            item["csat"] = ExpressionAttributeValues[":average"]
+            item["csat_history"] = ExpressionAttributeValues[":history"]
+        if ReturnValues == "UPDATED_NEW":
+            return {"Attributes": {"usage_count": item.get("usage_count", 0)}}
+        return {}
 
     def scan(self, FilterExpression=None):
         items = [item for item in self.items.values() if item.get("pending_batch")]
@@ -123,6 +136,48 @@ class UserStoreTests(unittest.TestCase):
         store.saveEmail("telegram-user-1", "person@example.com")
 
         self.assertEqual(store.getUserIdsWithPendingBatch(), [])
+
+    def test_increment_usage_count_starts_at_one_and_accumulates(self):
+        table = FakeUsersTable()
+        store = UserStore(table, KmsEmailEncryptor(FakeKmsClient(), "kms-key-id"))
+
+        first = store.incrementUsageCount("telegram-user-1")
+        second = store.incrementUsageCount("telegram-user-1")
+
+        self.assertEqual(first, 1)
+        self.assertEqual(second, 2)
+
+    def test_record_csat_score_stores_first_score_as_the_average(self):
+        table = FakeUsersTable()
+        store = UserStore(table, KmsEmailEncryptor(FakeKmsClient(), "kms-key-id"))
+        ratedAt = datetime(2026, 7, 31, tzinfo=timezone.utc)
+
+        store.recordCsatScore("telegram-user-1", 8, ratedAt)
+
+        item = table.items["telegram-user-1"]
+        self.assertEqual(item["csat"], 8)
+        self.assertEqual(
+            item["csat_history"], [{"score": 8, "rated_at": ratedAt.isoformat()}]
+        )
+
+    def test_record_csat_score_averages_across_multiple_ratings(self):
+        table = FakeUsersTable()
+        store = UserStore(table, KmsEmailEncryptor(FakeKmsClient(), "kms-key-id"))
+        firstRatedAt = datetime(2026, 7, 31, tzinfo=timezone.utc)
+        secondRatedAt = datetime(2026, 8, 1, tzinfo=timezone.utc)
+
+        store.recordCsatScore("telegram-user-1", 8, firstRatedAt)
+        store.recordCsatScore("telegram-user-1", 4, secondRatedAt)
+
+        item = table.items["telegram-user-1"]
+        self.assertEqual(item["csat"], 6)
+        self.assertEqual(
+            item["csat_history"],
+            [
+                {"score": 8, "rated_at": firstRatedAt.isoformat()},
+                {"score": 4, "rated_at": secondRatedAt.isoformat()},
+            ],
+        )
 
 
 if __name__ == "__main__":

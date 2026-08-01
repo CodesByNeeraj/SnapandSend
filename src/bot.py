@@ -12,6 +12,7 @@ load_dotenv()
 from telegram.ext import (  # noqa: E402
     Application,
     ApplicationBuilder,
+    CallbackQueryHandler,
     CommandHandler,
     MessageHandler,
     filters,
@@ -20,6 +21,7 @@ from telegram.ext import (  # noqa: E402
 from src.config import Settings  # noqa: E402
 from src.restart_notifier import RestartNotifier  # noqa: E402
 from src.runtime import buildRuntime  # noqa: E402
+from src.satisfaction_survey import CSAT_CALLBACK_PREFIX  # noqa: E402
 
 TIMEOUT_CHECK_SECONDS = 30
 
@@ -42,6 +44,11 @@ def buildApplication(settings: Settings) -> Application:
     application.add_handler(MessageHandler(filters.PHOTO, handlePhotoUpload))
     application.add_handler(MessageHandler(filters.Document.ALL, handleDocumentUpload))
     application.add_handler(MessageHandler(filters.ALL, handleUnsupportedMessage))
+    application.add_handler(
+        CallbackQueryHandler(
+            handleCsatRatingCallback, pattern=f"^{CSAT_CALLBACK_PREFIX}"
+        )
+    )
     application.bot_data["runtime"] = runtime
     application.job_queue.run_repeating(
         processExpiredBatches,
@@ -70,6 +77,13 @@ async def handleTextMessage(update: object, context: object) -> None:
 
     adapter = context.application.bot_data["runtime"].telegramUpdateAdapter
     await adapter.handleText(update)
+
+
+async def handleCsatRatingCallback(update: object, context: object) -> None:
+    """Adapt a tapped CSAT rating button to the shared rating handler."""
+
+    adapter = context.application.bot_data["runtime"].telegramUpdateAdapter
+    await adapter.handleCsatRating(update)
 
 
 async def notifyLostBatchesOnStartup(application: object) -> None:
