@@ -40,8 +40,9 @@ class SettingsTests(unittest.TestCase):
 
     def test_settings_reject_missing_required_values(self):
         with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaises(ConfigurationError):
-                Settings.fromEnvironment()
+            with patch("src.config.load_dotenv"):
+                with self.assertRaises(ConfigurationError):
+                    Settings.fromEnvironment()
 
 
 if __name__ == "__main__":
