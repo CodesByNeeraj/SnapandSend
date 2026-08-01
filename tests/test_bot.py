@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from src.bot import buildApplication, notifyLostBatchesOnStartup
 from src.config import Settings
@@ -54,30 +54,69 @@ class FakeBot:
         self.sentMessages.append((chat_id, text))
 
 
+def buildTestSettings() -> Settings:
+    return Settings(
+        "token",
+        "openai",
+        "resend",
+        "kms",
+        "region",
+        "users",
+        "from",
+        "model",
+        "langfuse-public",
+        "langfuse-secret",
+        "https://jp.cloud.langfuse.com",
+    )
+
+
+class FakeContext:
+    def __init__(self, application):
+        self.application = application
+
+
 class BotTests(unittest.TestCase):
     def test_build_application_registers_start_done_and_text_handlers(self):
-        settings = Settings(
-            "token",
-            "openai",
-            "resend",
-            "kms",
-            "region",
-            "users",
-            "from",
-            "model",
-            "langfuse-public",
-            "langfuse-secret",
-            "https://jp.cloud.langfuse.com",
-        )
         with patch("src.bot.buildRuntime") as runtime:
             runtime.return_value.telegramUpdateAdapter.handleStart = object()
             runtime.return_value.telegramUpdateAdapter.handleDone = object()
             runtime.return_value.telegramUpdateAdapter.handleText = object()
             with patch("src.bot.ApplicationBuilder", return_value=FakeBuilder()):
-                application = buildApplication(settings)
+                application = buildApplication(buildTestSettings())
         self.assertEqual(len(application.handlers), 6)
         self.assertIn("runtime", application.bot_data)
         self.assertIsNotNone(application.post_init)
+
+
+class RegisteredHandlerCallbackTests(unittest.IsolatedAsyncioTestCase):
+    """Invokes each registered handler the way python-telegram-bot actually
+    does: callback(update, context) with both positional arguments. Earlier
+    tests only asserted handler counts, so a callback signature mismatch
+    (adapter methods only accepting `update`) went undetected until it
+    broke every command against the real Telegram API."""
+
+    async def test_start_done_and_text_handlers_dispatch_with_update_and_context(
+        self,
+    ):
+        with patch("src.bot.buildRuntime") as runtime:
+            adapter = runtime.return_value.telegramUpdateAdapter
+            adapter.handleStart = AsyncMock()
+            adapter.handleDone = AsyncMock()
+            adapter.handleText = AsyncMock()
+            with patch("src.bot.ApplicationBuilder", return_value=FakeBuilder()):
+                application = buildApplication(buildTestSettings())
+
+        update = object()
+        context = FakeContext(application)
+        startHandler, doneHandler, textHandler = application.handlers[:3]
+
+        await startHandler.callback(update, context)
+        await doneHandler.callback(update, context)
+        await textHandler.callback(update, context)
+
+        adapter.handleStart.assert_awaited_once_with(update)
+        adapter.handleDone.assert_awaited_once_with(update)
+        adapter.handleText.assert_awaited_once_with(update)
 
 
 class NotifyLostBatchesOnStartupTests(unittest.IsolatedAsyncioTestCase):
