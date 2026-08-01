@@ -11,6 +11,7 @@ EMAIL_SUBJECT = "Your Snap&Send notes"
 
 HTML_BODY_STYLE = "font-family: sans-serif; color: #1a1a1a; line-height: 1.5;"
 HTML_HEADING_STYLE = "margin: 24px 0 8px;"
+HTML_SUBHEADING_STYLE = "margin: 16px 0 4px;"
 HTML_LIST_STYLE = "margin: 0 0 16px; padding-left: 20px;"
 HTML_PARAGRAPH_STYLE = "margin: 0 0 16px;"
 HTML_FLOWCHART_LINE_STYLE = "margin: 0 0 4px;"
@@ -79,6 +80,8 @@ def renderFlowchartLines(block: ContentBlock) -> list[FlowchartLine]:
 def renderContentBlockText(block: ContentBlock) -> str:
     """Render one content block as plain text."""
 
+    if block.type == "heading":
+        return f"### {block.text}"
     if block.type == "paragraph":
         return block.text
     if block.type == "bullets":
@@ -90,6 +93,8 @@ def renderContentBlockText(block: ContentBlock) -> str:
 def renderContentBlockHtml(block: ContentBlock) -> str:
     """Render one content block as an HTML fragment."""
 
+    if block.type == "heading":
+        return f'<h3 style="{HTML_SUBHEADING_STYLE}">{html.escape(block.text)}</h3>'
     if block.type == "paragraph":
         return f'<p style="{HTML_PARAGRAPH_STYLE}">{html.escape(block.text)}</p>'
     if block.type == "bullets":

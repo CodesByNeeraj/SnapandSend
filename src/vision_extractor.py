@@ -22,6 +22,12 @@ for prose text, a `bullets` block for a list of points. Do not force prose
 into bullets or bullets into a paragraph, and use multiple blocks in order
 if the source mixes both.
 
+If a short bold or otherwise visually distinct sub-label introduces the text
+that follows it (for example a small heading above its own paragraph or
+bullet list within the slide), return that sub-label as its own `heading`
+block immediately before the block it introduces. Never merge a sub-label
+into the text that follows it as a single paragraph or bullet.
+
 If the image contains a flowchart or diagram (boxes or steps connected by
 arrows), return a `flowchart` block instead of paragraph or bullets for that
 part of the image. List each distinct step once in `nodes`, and list each
@@ -33,6 +39,15 @@ branching or decision diagram becomes edges reflecting each branch.
 """.strip()
 EXTRACTION_ATTEMPTS = 2
 
+HEADING_BLOCK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "type": {"type": "string", "enum": ["heading"]},
+        "text": {"type": "string"},
+    },
+    "required": ["type", "text"],
+    "additionalProperties": False,
+}
 PARAGRAPH_BLOCK_SCHEMA = {
     "type": "object",
     "properties": {
@@ -72,7 +87,12 @@ FLOWCHART_BLOCK_SCHEMA = {
     "additionalProperties": False,
 }
 CONTENT_BLOCK_SCHEMA = {
-    "anyOf": [PARAGRAPH_BLOCK_SCHEMA, BULLETS_BLOCK_SCHEMA, FLOWCHART_BLOCK_SCHEMA]
+    "anyOf": [
+        HEADING_BLOCK_SCHEMA,
+        PARAGRAPH_BLOCK_SCHEMA,
+        BULLETS_BLOCK_SCHEMA,
+        FLOWCHART_BLOCK_SCHEMA,
+    ]
 }
 
 EXTRACTION_RESPONSE_FORMAT = {
@@ -108,9 +128,9 @@ class FlowchartEdge:
 
 @dataclass(frozen=True)
 class ContentBlock:
-    """One paragraph, bullet list, or flowchart, in source order."""
+    """One heading, paragraph, bullet list, or flowchart, in source order."""
 
-    type: Literal["paragraph", "bullets", "flowchart"]
+    type: Literal["heading", "paragraph", "bullets", "flowchart"]
     text: str | None = None
     items: list[str] | None = None
     nodes: list[str] | None = None
@@ -176,7 +196,12 @@ def parseContentBlocks(rawBlocks: Any) -> list[ContentBlock]:
         if not isinstance(rawBlock, dict):
             raise ValueError("block is not an object")
         blockType = rawBlock.get("type")
-        if blockType == "paragraph":
+        if blockType == "heading":
+            text = rawBlock.get("text")
+            if not isinstance(text, str):
+                raise ValueError("heading block is missing text")
+            blocks.append(ContentBlock(type="heading", text=text))
+        elif blockType == "paragraph":
             text = rawBlock.get("text")
             if not isinstance(text, str):
                 raise ValueError("paragraph block is missing text")

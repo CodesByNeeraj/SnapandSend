@@ -132,6 +132,52 @@ class VisionExtractorTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(len(client.responses.calls), 1)
 
+    async def test_extract_document_returns_heading_followed_by_paragraph(self):
+        outputText = json.dumps(
+            {
+                "status": "readable",
+                "title": "Prefill vs Decode",
+                "blocks": [
+                    {"type": "heading", "text": "The Decode Phase"},
+                    {
+                        "type": "paragraph",
+                        "text": "Compute-Bound: Faster GPUs directly improve "
+                        "token throughput",
+                    },
+                ],
+            }
+        )
+        client = FakeClient([FakeResponse(outputText)])
+        extractor = VisionExtractor(client, "gpt-5.6-terra")
+
+        result = await extractor.extractDocument(b"image-bytes")
+
+        self.assertEqual(
+            result.blocks,
+            [
+                ContentBlock(type="heading", text="The Decode Phase"),
+                ContentBlock(
+                    type="paragraph",
+                    text="Compute-Bound: Faster GPUs directly improve "
+                    "token throughput",
+                ),
+            ],
+        )
+
+    async def test_extract_document_rejects_heading_missing_text(self):
+        outputText = json.dumps(
+            {
+                "status": "readable",
+                "title": "Slide title",
+                "blocks": [{"type": "heading"}],
+            }
+        )
+        client = FakeClient([FakeResponse(outputText)])
+        extractor = VisionExtractor(client, "gpt-5.6-terra")
+
+        with self.assertRaises(VisionExtractionError):
+            await extractor.extractDocument(b"image-bytes")
+
     async def test_extract_document_returns_flowchart_block(self):
         outputText = json.dumps(
             {

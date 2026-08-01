@@ -69,6 +69,46 @@ class EmailSenderTests(unittest.TestCase):
 
         self.assertEqual(body, "# Snap&Send notes\n\n## Whiteboard\n\nFree-form notes.")
 
+    def test_render_email_body_renders_heading_before_its_paragraph(self):
+        notes = CuratedNotes(
+            documents=[
+                CuratedDocument(
+                    title="Prefill vs Decode",
+                    blocks=[
+                        ContentBlock(type="heading", text="The Decode Phase"),
+                        ContentBlock(
+                            type="paragraph",
+                            text="Compute-Bound: Faster GPUs directly improve "
+                            "token throughput",
+                        ),
+                    ],
+                )
+            ]
+        )
+
+        body = renderEmailBody(notes)
+
+        self.assertEqual(
+            body,
+            "# Snap&Send notes\n\n## Prefill vs Decode\n\n### The Decode Phase\n\n"
+            "Compute-Bound: Faster GPUs directly improve token throughput",
+        )
+
+    def test_render_email_body_html_renders_heading_as_h3(self):
+        notes = CuratedNotes(
+            documents=[
+                CuratedDocument(
+                    title="Whiteboard",
+                    blocks=[ContentBlock(type="heading", text="Sub <heading> & more")],
+                )
+            ]
+        )
+
+        html = renderEmailBodyHtml(notes)
+
+        self.assertIn("<h3", html)
+        self.assertIn("Sub &lt;heading&gt; &amp; more</h3>", html)
+
     def test_render_email_body_preserves_mixed_block_order(self):
         notes = CuratedNotes(
             documents=[

@@ -14,8 +14,8 @@ CURATION_PROMPT = """
 Combine these extracted documents into concise notes. Omit near-duplicate
 documents, preserve the source order of distinct documents, and do not add or
 rewrite facts. Return each kept document with its title and its blocks,
-preserving whether each block was a paragraph, a bullet list, or a
-flowchart, including a flowchart's nodes and edges exactly as given.
+preserving whether each block was a heading, a paragraph, a bullet list, or
+a flowchart, including a flowchart's nodes and edges exactly as given.
 """.strip()
 CURATION_ATTEMPTS = 2
 CURATION_RESPONSE_FORMAT = {
