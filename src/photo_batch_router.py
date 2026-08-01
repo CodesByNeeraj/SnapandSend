@@ -38,4 +38,8 @@ class PhotoBatchRouter:
         if count == 1:
             self.userStore.markBatchPending(userId)
         self.rateLimiter.recordPhoto(userId, calendarDay, userName)
-        return f"Image accepted ({count}/15). Send more or type /done if you want to start processing right away. Else I will do so automatically once 3 minutes have passed."
+        return (
+            f"Image accepted ({count}/15). Send more or type /done if you want "
+            "to start processing right away. Else I will do so automatically "
+            "once 3 minutes have passed."
+        )
