@@ -25,6 +25,14 @@ class TelegramRouterTests(unittest.TestCase):
         self.assertIn("OpenAI", response)
         self.assertTrue(router.awaitingEmail["user-1"])
 
+    def test_start_for_registered_user_prompts_to_upload_without_resetting_state(self):
+        router = TelegramRouter(FakeUserStore())
+
+        response = router.handleStart("registered")
+
+        self.assertEqual(response, "Upload an image to get started.")
+        self.assertNotIn("registered", router.awaitingEmail)
+
     def test_email_reply_saves_registered_address_and_clears_waiting_state(self):
         store = FakeUserStore()
         router = TelegramRouter(store)

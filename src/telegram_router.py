@@ -17,6 +17,7 @@ HELP_MESSAGE = (
     "will format them nicely and drop it in your inbox!"
 )
 EMAIL_REQUIRED_MESSAGE = "Reply with your email address before sending photos."
+RETURNING_USER_START_MESSAGE = "Upload an image to get started."
 IMAGE_ACCEPTED_MESSAGE = "Image accepted. Send more or use /done when ready."
 UNSUPPORTED_UPLOAD_MESSAGE = "Only image files are supported."
 
@@ -29,8 +30,16 @@ class TelegramRouter:
         self.awaitingEmail: dict[str, bool] = {}
 
     def handleStart(self, userId: str) -> str:
-        """Begin email registration and disclose data handling."""
+        """Begin email registration for a new user, or prompt a returning one.
 
+        A returning user (one with a registered email) is not put back into
+        the awaiting-email state, since their next plain-text message would
+        otherwise be silently treated as an email reply and, if it happened
+        to look like one, overwrite their real registered address.
+        """
+
+        if self.userStore.getEmail(userId):
+            return RETURNING_USER_START_MESSAGE
         self.awaitingEmail[userId] = True
         return START_MESSAGE
 
