@@ -32,11 +32,10 @@ def buildApplication(settings: Settings) -> Application:
         .post_init(notifyLostBatchesOnStartup)
         .build()
     )
-    adapter = runtime.telegramUpdateAdapter
-    application.add_handler(CommandHandler("start", adapter.handleStart))
-    application.add_handler(CommandHandler("done", adapter.handleDone))
+    application.add_handler(CommandHandler("start", handleStartCommand))
+    application.add_handler(CommandHandler("done", handleDoneCommand))
     application.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, adapter.handleText)
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handleTextMessage)
     )
     application.add_handler(MessageHandler(filters.PHOTO, handlePhotoUpload))
     application.add_handler(MessageHandler(filters.Document.ALL, handleDocumentUpload))
@@ -48,6 +47,27 @@ def buildApplication(settings: Settings) -> Application:
         name="expired-batch-processor",
     )
     return application
+
+
+async def handleStartCommand(update: object, context: object) -> None:
+    """Adapt a Telegram /start update to the shared start handler."""
+
+    adapter = context.application.bot_data["runtime"].telegramUpdateAdapter
+    await adapter.handleStart(update)
+
+
+async def handleDoneCommand(update: object, context: object) -> None:
+    """Adapt a Telegram /done update to the shared done handler."""
+
+    adapter = context.application.bot_data["runtime"].telegramUpdateAdapter
+    await adapter.handleDone(update)
+
+
+async def handleTextMessage(update: object, context: object) -> None:
+    """Adapt a Telegram text update to the shared text handler."""
+
+    adapter = context.application.bot_data["runtime"].telegramUpdateAdapter
+    await adapter.handleText(update)
 
 
 async def notifyLostBatchesOnStartup(application: object) -> None:
