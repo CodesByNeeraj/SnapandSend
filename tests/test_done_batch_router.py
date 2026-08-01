@@ -1,7 +1,13 @@
 import unittest
 
 from src.batch_manager import EmptyBatchError
-from src.done_batch_router import DoneBatchRouter
+from src.done_batch_router import (
+    EMAIL_SENT_MESSAGE,
+    EMPTY_BATCH_MESSAGE,
+    UNREADABLE_BATCH_MESSAGE,
+    DoneBatchRouter,
+    NoBatchToProcessError,
+)
 
 
 class FakeBatchManager:
@@ -15,11 +21,12 @@ class FakeBatchManager:
 
 
 class FakeUserStore:
-    def __init__(self):
+    def __init__(self, email="person@example.com"):
+        self.email = email
         self.pendingClears = []
 
     def getEmail(self, userId):
-        return "person@example.com"
+        return self.email
 
     def clearBatchPending(self, userId):
         self.pendingClears.append(userId)
@@ -40,29 +47,57 @@ class EmptyNotesOrchestrator(FakeOrchestrator):
         return None
 
 
-class DoneBatchRouterTests(unittest.IsolatedAsyncioTestCase):
-    async def test_done_closes_batch_and_uses_registered_email(self):
-        orchestrator = FakeOrchestrator()
+class CloseBatchForProcessingTests(unittest.TestCase):
+    def test_returns_recipient_email_and_images_for_a_closable_batch(self):
         userStore = FakeUserStore()
-        router = DoneBatchRouter(FakeBatchManager([b"image"]), userStore, orchestrator)
-        response = await router.handleDone("user")
-        self.assertIn("being prepared", response)
-        self.assertEqual(orchestrator.requests, [("person@example.com", [b"image"])])
+        router = DoneBatchRouter(FakeBatchManager([b"image"]), userStore, None)
+
+        recipientEmail, images = router.closeBatchForProcessing("user")
+
+        self.assertEqual(recipientEmail, "person@example.com")
+        self.assertEqual(images, [b"image"])
         self.assertEqual(userStore.pendingClears, ["user"])
 
-    async def test_done_with_no_photos_returns_upload_first_message(self):
+    def test_raises_when_batch_is_empty(self):
         userStore = FakeUserStore()
-        router = DoneBatchRouter(FakeBatchManager(), userStore, FakeOrchestrator())
-        response = await router.handleDone("user")
-        self.assertIn("upload", response.lower())
+        router = DoneBatchRouter(FakeBatchManager(), userStore, None)
+
+        with self.assertRaises(NoBatchToProcessError):
+            router.closeBatchForProcessing("user")
         self.assertEqual(userStore.pendingClears, [])
 
-    async def test_done_with_no_usable_notes_returns_clearer_photo_message(self):
-        router = DoneBatchRouter(
-            FakeBatchManager([b"image"]), FakeUserStore(), EmptyNotesOrchestrator()
-        )
-        response = await router.handleDone("user")
-        self.assertIn("readable text", response.lower())
+    def test_raises_when_no_email_is_registered(self):
+        userStore = FakeUserStore(email=None)
+        router = DoneBatchRouter(FakeBatchManager([b"image"]), userStore, None)
+
+        with self.assertRaises(NoBatchToProcessError):
+            router.closeBatchForProcessing("user")
+
+
+class CompleteProcessingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_returns_email_sent_message_on_successful_delivery(self):
+        orchestrator = FakeOrchestrator()
+        router = DoneBatchRouter(None, None, orchestrator)
+
+        response = await router.completeProcessing("person@example.com", [b"image"])
+
+        self.assertEqual(response, EMAIL_SENT_MESSAGE)
+        self.assertEqual(orchestrator.requests, [("person@example.com", [b"image"])])
+
+    async def test_returns_unreadable_batch_message_when_curation_is_empty(self):
+        router = DoneBatchRouter(None, None, EmptyNotesOrchestrator())
+
+        response = await router.completeProcessing("person@example.com", [b"image"])
+
+        self.assertEqual(response, UNREADABLE_BATCH_MESSAGE)
+
+
+class MessageConstantTests(unittest.TestCase):
+    def test_empty_batch_message_mentions_upload(self):
+        self.assertIn("upload", EMPTY_BATCH_MESSAGE.lower())
+
+    def test_unreadable_batch_message_mentions_readable_text(self):
+        self.assertIn("readable text", UNREADABLE_BATCH_MESSAGE.lower())
 
 
 if __name__ == "__main__":

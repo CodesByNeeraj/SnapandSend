@@ -63,10 +63,11 @@ class EndToEndTests(unittest.IsolatedAsyncioTestCase):
         acknowledgement = photoRouter.acceptImage(
             "user", None, b"image", datetime.now(timezone.utc)
         )
-        response = await doneRouter.handleDone("user")
+        recipientEmail, images = doneRouter.closeBatchForProcessing("user")
+        response = await doneRouter.completeProcessing(recipientEmail, images)
 
         self.assertIn("1/15", acknowledgement)
-        self.assertIn("being prepared", response)
+        self.assertIn("Email sent", response)
         self.assertEqual(len(emailClient.requests), 1)
         self.assertIn("Slide title", emailClient.requests[0]["text"])
 
@@ -87,7 +88,8 @@ class EndToEndTests(unittest.IsolatedAsyncioTestCase):
         for index in range(8):
             photoRouter.acceptImage("user", None, bytes([index]), now)
 
-        await doneRouter.handleDone("user")
+        recipientEmail, images = doneRouter.closeBatchForProcessing("user")
+        await doneRouter.completeProcessing(recipientEmail, images)
 
         self.assertEqual(len(emailClient.requests), 1)
 
