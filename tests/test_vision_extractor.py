@@ -4,6 +4,17 @@ import unittest
 from src.vision_extractor import ContentBlock, ExtractedDocument, VisionExtractionError
 from src.vision_extractor import FlowchartEdge, VisionExtractor
 
+TABLE_ROWS = [
+    ["United States", "3.29 Trillion / day", "13.23 Trillion / day", "302%"],
+    ["China", "1.87 Trillion / day", "10.16 Trillion / day", "443%"],
+]
+TABLE_HEADERS = [
+    "Region",
+    "Jan 2025 Daily Average",
+    "May 2026 Daily Average",
+    "Growth (%)",
+]
+
 
 class FakeResponses:
     def __init__(self, responses):
@@ -170,6 +181,60 @@ class VisionExtractorTests(unittest.IsolatedAsyncioTestCase):
                 "status": "readable",
                 "title": "Slide title",
                 "blocks": [{"type": "heading"}],
+            }
+        )
+        client = FakeClient([FakeResponse(outputText)])
+        extractor = VisionExtractor(client, "gpt-5.6-terra")
+
+        with self.assertRaises(VisionExtractionError):
+            await extractor.extractDocument(b"image-bytes")
+
+    async def test_extract_document_returns_table_block(self):
+        outputText = json.dumps(
+            {
+                "status": "readable",
+                "title": "Regional growth",
+                "blocks": [
+                    {
+                        "type": "table",
+                        "headers": TABLE_HEADERS,
+                        "rows": TABLE_ROWS,
+                    }
+                ],
+            }
+        )
+        client = FakeClient([FakeResponse(outputText)])
+        extractor = VisionExtractor(client, "gpt-5.6-terra")
+
+        result = await extractor.extractDocument(b"image-bytes")
+
+        self.assertEqual(
+            result.blocks,
+            [ContentBlock(type="table", headers=TABLE_HEADERS, rows=TABLE_ROWS)],
+        )
+
+    async def test_extract_document_rejects_table_missing_rows(self):
+        outputText = json.dumps(
+            {
+                "status": "readable",
+                "title": "Broken table",
+                "blocks": [{"type": "table", "headers": ["A", "B"]}],
+            }
+        )
+        client = FakeClient([FakeResponse(outputText)])
+        extractor = VisionExtractor(client, "gpt-5.6-terra")
+
+        with self.assertRaises(VisionExtractionError):
+            await extractor.extractDocument(b"image-bytes")
+
+    async def test_extract_document_rejects_table_with_non_string_cell(self):
+        outputText = json.dumps(
+            {
+                "status": "readable",
+                "title": "Broken table",
+                "blocks": [
+                    {"type": "table", "headers": ["A"], "rows": [[1]]},
+                ],
             }
         )
         client = FakeClient([FakeResponse(outputText)])

@@ -16,6 +16,8 @@ HTML_LIST_STYLE = "margin: 0 0 16px; padding-left: 20px;"
 HTML_PARAGRAPH_STYLE = "margin: 0 0 16px;"
 HTML_FLOWCHART_LINE_STYLE = "margin: 0 0 4px;"
 FLOWCHART_INDENT_PX = 20
+HTML_TABLE_STYLE = "border-collapse: collapse; margin: 0 0 16px;"
+HTML_TABLE_CELL_STYLE = "border: 1px solid #ccc; padding: 4px 8px; text-align: left;"
 
 FLOWCHART_ARROW = "→"
 
@@ -86,6 +88,11 @@ def renderContentBlockText(block: ContentBlock) -> str:
         return block.text
     if block.type == "bullets":
         return "\n".join(f"- {item}" for item in block.items)
+    if block.type == "table":
+        headerRow = f"| {' | '.join(block.headers)} |"
+        separatorRow = f"| {' | '.join('---' for _ in block.headers)} |"
+        dataRows = [f"| {' | '.join(row)} |" for row in block.rows]
+        return "\n".join([headerRow, separatorRow, *dataRows])
     lines = renderFlowchartLines(block)
     return "\n".join(("  " * line.depth) + line.text for line in lines)
 
@@ -100,6 +107,26 @@ def renderContentBlockHtml(block: ContentBlock) -> str:
     if block.type == "bullets":
         items = "".join(f"<li>{html.escape(item)}</li>" for item in block.items)
         return f'<ul style="{HTML_LIST_STYLE}">{items}</ul>'
+    if block.type == "table":
+        headerCells = "".join(
+            f'<th style="{HTML_TABLE_CELL_STYLE}">{html.escape(header)}</th>'
+            for header in block.headers
+        )
+        bodyRows = "".join(
+            "<tr>"
+            + "".join(
+                f'<td style="{HTML_TABLE_CELL_STYLE}">{html.escape(cell)}</td>'
+                for cell in row
+            )
+            + "</tr>"
+            for row in block.rows
+        )
+        return (
+            f'<table style="{HTML_TABLE_STYLE}">'
+            f"<thead><tr>{headerCells}</tr></thead>"
+            f"<tbody>{bodyRows}</tbody>"
+            "</table>"
+        )
     rows = []
     for line in renderFlowchartLines(block):
         indent = FLOWCHART_INDENT_PX * line.depth

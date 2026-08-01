@@ -136,6 +136,38 @@ class NotesCuratorTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result.documents[0].blocks, [flowchartBlock])
 
+    async def test_curate_notes_preserves_table_blocks(self):
+        outputText = json.dumps(
+            {
+                "documents": [
+                    {
+                        "title": "Growth",
+                        "blocks": [
+                            {
+                                "type": "table",
+                                "headers": ["Region", "Growth"],
+                                "rows": [["US", "302%"], ["China", "443%"]],
+                            }
+                        ],
+                    }
+                ]
+            }
+        )
+        client = FakeClient([FakeResponse(outputText)])
+        curator = NotesCurator(client, "gpt-5.6-terra")
+        tableBlock = ContentBlock(
+            type="table",
+            headers=["Region", "Growth"],
+            rows=[["US", "302%"], ["China", "443%"]],
+        )
+        documents = [
+            ExtractedDocument(status="readable", title="Growth", blocks=[tableBlock])
+        ]
+
+        result = await curator.curateNotes(documents)
+
+        self.assertEqual(result.documents[0].blocks, [tableBlock])
+
     async def test_curate_notes_returns_empty_result_without_readable_documents(self):
         client = FakeClient([])
         curator = NotesCurator(client, "gpt-5.6-terra")

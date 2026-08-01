@@ -26,6 +26,10 @@ def flowchartBlock(nodes: list[str], edges: list[tuple[str, str, str]]) -> Conte
     )
 
 
+def tableBlock(headers: list[str], rows: list[list[str]]) -> ContentBlock:
+    return ContentBlock(type="table", headers=headers, rows=rows)
+
+
 class FakeEmailClient:
     def __init__(self):
         self.requests = []
@@ -224,6 +228,37 @@ class EmailSenderTests(unittest.TestCase):
         self.assertIn("-- yes --&gt; Approve", html)
         self.assertIn("-- no --&gt; Reject", html)
         self.assertIn("margin-left: 20px", html)
+
+    def test_render_email_body_renders_table_as_pipe_rows(self):
+        block = tableBlock(["Region", "Growth"], [["US", "302%"], ["China", "443%"]])
+        notes = CuratedNotes(
+            documents=[CuratedDocument(title="Growth", blocks=[block])]
+        )
+
+        body = renderEmailBody(notes)
+
+        self.assertEqual(
+            body,
+            "# Snap&Send notes\n\n## Growth\n\n"
+            "| Region | Growth |\n| --- | --- |\n"
+            "| US | 302% |\n| China | 443% |",
+        )
+
+    def test_render_email_body_html_renders_table_element(self):
+        block = tableBlock(
+            ["Region", "Growth"], [["US", "302%"], ["China & co", "443%"]]
+        )
+        notes = CuratedNotes(
+            documents=[CuratedDocument(title="Growth", blocks=[block])]
+        )
+
+        html = renderEmailBodyHtml(notes)
+
+        self.assertIn("<table", html)
+        self.assertIn("<th", html)
+        self.assertIn("Region", html)
+        self.assertIn("<td", html)
+        self.assertIn("China &amp; co", html)
 
     def test_send_notes_sends_one_email_to_registered_address(self):
         client = FakeEmailClient()
