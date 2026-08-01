@@ -51,7 +51,7 @@ class TelegramRouterTests(unittest.TestCase):
 
         response = router.handleText("user-1", "hello", datetime.now(timezone.utc))
 
-        self.assertIn("photo", response.lower())
+        self.assertIn("image", response.lower())
 
     def test_image_upload_without_registered_email_prompts_for_email(self):
         router = TelegramRouter(FakeUserStore())
