@@ -69,9 +69,7 @@ def buildRuntime(settings: Settings) -> Runtime:
     )
     batchManager = BatchManager()
     batchOrchestrator = BatchOrchestrator(visionExtractor, notesCurator, emailSender)
-    expiredBatchProcessor = ExpiredBatchProcessor(
-        batchManager, userStore, batchOrchestrator
-    )
+    expiredBatchProcessor = ExpiredBatchProcessor(batchManager, userStore)
     telegramRouter = TelegramRouter(userStore)
     photoBatchRouter = PhotoBatchRouter(
         RateLimiter(), batchManager, prepareImage, userStore

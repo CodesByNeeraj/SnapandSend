@@ -1,5 +1,7 @@
 """Telegram long-polling entrypoint for Snap&Send."""
 
+import asyncio
+
 from dotenv import load_dotenv
 
 # Loaded before src.runtime so LANGFUSE_* env vars are already set by the
@@ -78,11 +80,20 @@ async def notifyLostBatchesOnStartup(application: object) -> None:
 
 
 async def processExpiredBatches(context: object) -> None:
-    """Run one periodic expired-batch processing cycle."""
+    """Run one periodic expired-batch closure cycle.
 
-    await context.application.bot_data[
-        "runtime"
-    ].timeoutScheduler.processExpiredBatches()
+    Each ready batch is processed and notified via its own background task
+    so one user's slow batch never delays another user's notification.
+    """
+
+    runtime = context.application.bot_data["runtime"]
+    ready = runtime.timeoutScheduler.getExpiredBatchesForProcessing()
+    for userId, recipientEmail, images in ready:
+        asyncio.create_task(
+            runtime.telegramUpdateAdapter.notifyExpiredBatchProcessing(
+                context.bot, userId, recipientEmail, images
+            )
+        )
 
 
 async def handlePhotoUpload(update: object, context: object) -> None:
