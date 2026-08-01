@@ -11,12 +11,13 @@ from src.vision_extractor import CONTENT_BLOCK_SCHEMA, ContentBlock, ExtractedDo
 from src.vision_extractor import parseContentBlocks
 
 CURATION_PROMPT = """
-Combine these extracted documents into concise notes. Omit near-duplicate
-documents, preserve the source order of distinct documents, and do not add or
-rewrite facts. Return each kept document with its title and its blocks,
-preserving whether each block was a heading, a paragraph, a bullet list, a
-flowchart, or a table, including a flowchart's nodes and edges or a table's
-headers and rows exactly as given.
+Combine these extracted documents into one set of notes. Omit near-duplicate
+documents and preserve the source order of distinct documents. Keep every
+kept document's text exactly as extracted, verbatim -- do not paraphrase,
+summarize, or rewrite wording, and do not add or remove facts. Return each
+kept document with its title and its blocks, preserving whether each block
+was a heading, a paragraph, a bullet list, a flowchart, or a table, including
+a flowchart's nodes and edges or a table's headers and rows exactly as given.
 """.strip()
 CURATION_ATTEMPTS = 2
 CURATION_RESPONSE_FORMAT = {
