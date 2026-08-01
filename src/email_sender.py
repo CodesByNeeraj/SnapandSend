@@ -1,19 +1,106 @@
 """Email note rendering and delivery through an injected Resend client."""
 
 import html
+from dataclasses import dataclass
 from typing import Any
 
 from src.notes_curator import CuratedNotes
+from src.vision_extractor import ContentBlock
 
 EMAIL_SUBJECT = "Your Snap&Send notes"
 
 HTML_BODY_STYLE = "font-family: sans-serif; color: #1a1a1a; line-height: 1.5;"
 HTML_HEADING_STYLE = "margin: 24px 0 8px;"
 HTML_LIST_STYLE = "margin: 0 0 16px; padding-left: 20px;"
+HTML_PARAGRAPH_STYLE = "margin: 0 0 16px;"
+HTML_FLOWCHART_LINE_STYLE = "margin: 0 0 4px;"
+FLOWCHART_INDENT_PX = 20
+
+FLOWCHART_ARROW = "→"
 
 
 class EmailDeliveryError(RuntimeError):
     """Raised when Resend cannot deliver a completed notes email."""
+
+
+@dataclass(frozen=True)
+class FlowchartLine:
+    """One rendered row of a flowchart: an indentation depth and its text."""
+
+    depth: int
+    text: str
+
+
+def renderFlowchartLines(block: ContentBlock) -> list[FlowchartLine]:
+    """Walk a flowchart's edges into ordered, indented, arrow-joined lines.
+
+    A straight chain of unlabeled edges collapses onto one line
+    ("A -> B -> C"). A node with more than one outgoing edge, or a labeled
+    edge, starts a new indented line per branch, so decision points and
+    labeled arrows stay visible instead of being flattened.
+    """
+
+    outgoing: dict[str, list] = {}
+    hasIncoming: set[str] = set()
+    for edge in block.edges:
+        outgoing.setdefault(edge.source, []).append(edge)
+        hasIncoming.add(edge.target)
+
+    startNodes = [node for node in block.nodes if node not in hasIncoming]
+    if not startNodes and block.nodes:
+        startNodes = block.nodes[:1]
+
+    lines: list[FlowchartLine] = []
+    visited: set[str] = set()
+
+    def walk(node: str, depth: int, prefix: str) -> None:
+        if node in visited:
+            lines.append(FlowchartLine(depth, prefix + node))
+            return
+        visited.add(node)
+        edges = outgoing.get(node, [])
+        if len(edges) == 1 and not edges[0].label:
+            walk(edges[0].target, depth, f"{prefix}{node} {FLOWCHART_ARROW} ")
+            return
+        lines.append(FlowchartLine(depth, prefix + node))
+        for edge in edges:
+            branchPrefix = (
+                f"-- {edge.label} --> " if edge.label else f"{FLOWCHART_ARROW} "
+            )
+            walk(edge.target, depth + 1, branchPrefix)
+
+    for node in startNodes:
+        if node not in visited:
+            walk(node, 0, "")
+
+    return lines
+
+
+def renderContentBlockText(block: ContentBlock) -> str:
+    """Render one content block as plain text."""
+
+    if block.type == "paragraph":
+        return block.text
+    if block.type == "bullets":
+        return "\n".join(f"- {item}" for item in block.items)
+    lines = renderFlowchartLines(block)
+    return "\n".join(("  " * line.depth) + line.text for line in lines)
+
+
+def renderContentBlockHtml(block: ContentBlock) -> str:
+    """Render one content block as an HTML fragment."""
+
+    if block.type == "paragraph":
+        return f'<p style="{HTML_PARAGRAPH_STYLE}">{html.escape(block.text)}</p>'
+    if block.type == "bullets":
+        items = "".join(f"<li>{html.escape(item)}</li>" for item in block.items)
+        return f'<ul style="{HTML_LIST_STYLE}">{items}</ul>'
+    rows = []
+    for line in renderFlowchartLines(block):
+        indent = FLOWCHART_INDENT_PX * line.depth
+        style = f"{HTML_FLOWCHART_LINE_STYLE} margin-left: {indent}px;"
+        rows.append(f'<p style="{style}">{html.escape(line.text)}</p>')
+    return "".join(rows)
 
 
 def renderEmailBody(notes: CuratedNotes) -> str:
@@ -25,8 +112,9 @@ def renderEmailBody(notes: CuratedNotes) -> str:
 
     sections = []
     for document in notes.documents:
-        bullets = "\n".join(f"- {bullet}" for bullet in document.bullets)
-        sections.append(f"## {document.title}\n{bullets}".rstrip())
+        parts = [f"## {document.title}"]
+        parts.extend(renderContentBlockText(block) for block in document.blocks)
+        sections.append("\n\n".join(parts).rstrip())
     return "# Snap&Send notes\n\n" + "\n\n".join(sections)
 
 
@@ -35,12 +123,10 @@ def renderEmailBodyHtml(notes: CuratedNotes) -> str:
 
     sections = []
     for document in notes.documents:
-        bullets = "".join(
-            f"<li>{html.escape(bullet)}</li>" for bullet in document.bullets
-        )
+        blockHtml = [renderContentBlockHtml(block) for block in document.blocks]
         sections.append(
             f'<h2 style="{HTML_HEADING_STYLE}">{html.escape(document.title)}</h2>'
-            f'<ul style="{HTML_LIST_STYLE}">{bullets}</ul>'
+            + "".join(blockHtml)
         )
     heading = f'<h1 style="{HTML_HEADING_STYLE}">Snap&amp;Send notes</h1>'
     return f'<div style="{HTML_BODY_STYLE}">' + heading + "".join(sections) + "</div>"
