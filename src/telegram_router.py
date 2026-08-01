@@ -12,7 +12,10 @@ START_MESSAGE = (
 )
 INVALID_EMAIL_MESSAGE = "Please reply with a valid email address."
 EMAIL_SAVED_MESSAGE = "Your email has been saved. You can now send photos."
-HELP_MESSAGE = "Send a photo or document image to start a notes batch."
+HELP_MESSAGE = (
+    "Send an image or images that you want me to extract text from and I "
+    "will format them nicely and drop it in your inbox!"
+)
 EMAIL_REQUIRED_MESSAGE = "Reply with your email address before sending photos."
 IMAGE_ACCEPTED_MESSAGE = "Image accepted. Send more or use /done when ready."
 UNSUPPORTED_UPLOAD_MESSAGE = "Only image files are supported."
