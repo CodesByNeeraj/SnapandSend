@@ -1,8 +1,14 @@
 """Telegram framework adapter for deterministic router responses."""
 
+import asyncio
 from datetime import datetime, timezone
 from typing import Any
 
+from src.done_batch_router import (
+    EMPTY_BATCH_MESSAGE,
+    PROCESSING_STARTED_MESSAGE,
+    NoBatchToProcessError,
+)
 from src.image_intake import FileSizeLimitError, UnsupportedImageError
 from src.image_intake import downloadImageBytes, validateImageUpload
 from src.email_sender import EmailDeliveryError
@@ -79,12 +85,37 @@ class TelegramUpdateAdapter:
         )
         await update.effective_message.reply_text(response)
 
-    async def handleDone(self, update: Any) -> None:
-        """Handle a Telegram /done update."""
+    async def handleDone(self, update: Any) -> "asyncio.Task[None] | None":
+        """Handle a Telegram /done update.
+
+        Replies immediately, then runs extraction, curation, and delivery in
+        the background so a slow batch does not delay replies to other
+        users' updates. Returns the background task so tests can await it;
+        production callers do not need the return value.
+        """
+
+        userId = str(update.effective_user.id)
+        try:
+            recipientEmail, images = self.doneBatchRouter.closeBatchForProcessing(
+                userId
+            )
+        except NoBatchToProcessError:
+            await update.effective_message.reply_text(EMPTY_BATCH_MESSAGE)
+            return None
+
+        await update.effective_message.reply_text(PROCESSING_STARTED_MESSAGE)
+        return asyncio.create_task(
+            self._completeProcessingAndNotify(update, recipientEmail, images)
+        )
+
+    async def _completeProcessingAndNotify(
+        self, update: Any, recipientEmail: str, images: list[bytes]
+    ) -> None:
+        """Finish processing a closed batch and report the outcome."""
 
         try:
-            response = await self.doneBatchRouter.handleDone(
-                str(update.effective_user.id)
+            response = await self.doneBatchRouter.completeProcessing(
+                recipientEmail, images
             )
         except (EmailDeliveryError, NotesCurationError, VisionExtractionError):
             response = PROCESSING_FAILURE_MESSAGE

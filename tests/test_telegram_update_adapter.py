@@ -1,5 +1,6 @@
 import unittest
 
+from src.done_batch_router import NoBatchToProcessError
 from src.telegram_update_adapter import TelegramUpdateAdapter
 from src.vision_extractor import VisionExtractionError
 
@@ -48,12 +49,20 @@ class FakePhotoBatchRouter:
 
 
 class FakeDoneBatchRouter:
-    async def handleDone(self, userId):
-        return "Your notes are being prepared."
+    def closeBatchForProcessing(self, userId):
+        return "person@example.com", [b"image"]
+
+    async def completeProcessing(self, recipientEmail, images):
+        return "Email sent! Check your inbox for your notes."
 
 
-class FailingDoneBatchRouter:
-    async def handleDone(self, userId):
+class EmptyBatchDoneBatchRouter:
+    def closeBatchForProcessing(self, userId):
+        raise NoBatchToProcessError()
+
+
+class FailingDoneBatchRouter(FakeDoneBatchRouter):
+    async def completeProcessing(self, recipientEmail, images):
         raise VisionExtractionError("failed")
 
 
@@ -104,23 +113,53 @@ class TelegramUpdateAdapterTests(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
-    async def test_done_replies_with_done_router_response(self):
+    async def test_done_immediately_acknowledges_then_reports_email_sent(self):
         update = FakeUpdate()
         adapter = TelegramUpdateAdapter(
             FakeRouter(), doneBatchRouter=FakeDoneBatchRouter()
         )
-        await adapter.handleDone(update)
+        backgroundTask = await adapter.handleDone(update)
         self.assertEqual(
-            update.effective_message.replies, ["Your notes are being prepared."]
+            update.effective_message.replies,
+            [
+                "I will update you when your images have been processed and the "
+                "email has been sent!"
+            ],
         )
 
-    async def test_done_replies_with_processing_failure_message(self):
+        await backgroundTask
+
+        self.assertEqual(
+            update.effective_message.replies,
+            [
+                "I will update you when your images have been processed and the "
+                "email has been sent!",
+                "Email sent! Check your inbox for your notes.",
+            ],
+        )
+
+    async def test_done_with_no_batch_replies_with_empty_batch_message_only(self):
+        update = FakeUpdate()
+        adapter = TelegramUpdateAdapter(
+            FakeRouter(), doneBatchRouter=EmptyBatchDoneBatchRouter()
+        )
+        backgroundTask = await adapter.handleDone(update)
+        self.assertIsNone(backgroundTask)
+        self.assertEqual(
+            update.effective_message.replies,
+            ["Please upload at least one photo before using /done."],
+        )
+
+    async def test_done_reports_processing_failure_after_acknowledging(self):
         update = FakeUpdate()
         adapter = TelegramUpdateAdapter(
             FakeRouter(), doneBatchRouter=FailingDoneBatchRouter()
         )
-        await adapter.handleDone(update)
-        self.assertIn("could not process", update.effective_message.replies[0])
+        backgroundTask = await adapter.handleDone(update)
+
+        await backgroundTask
+
+        self.assertIn("could not process", update.effective_message.replies[1])
 
     async def test_unsupported_upload_replies_with_router_response(self):
         update = FakeUpdate()

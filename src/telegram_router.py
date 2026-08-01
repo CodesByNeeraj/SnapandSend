@@ -6,7 +6,7 @@ from typing import Any
 
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 START_MESSAGE = (
-    "Send photos of slides, whiteboards, or documents and I will email your "
+    "Send photos that contain slides, whiteboards, or documents and I will email your "
     "notes. Images are sent to OpenAI for extraction and notes are delivered "
     "through Resend. Reply with your email address to begin."
 )
