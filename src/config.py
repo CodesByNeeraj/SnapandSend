@@ -26,6 +26,9 @@ class Settings:
     usersTableName: str
     resendFromEmail: str
     openaiModel: str
+    langfusePublicKey: str
+    langfuseSecretKey: str
+    langfuseHost: str
 
     @classmethod
     def fromEnvironment(cls) -> "Settings":
@@ -38,6 +41,9 @@ class Settings:
             "RESEND_API_KEY": os.getenv("RESEND_API_KEY"),
             "KMS_KEY_ID": os.getenv("KMS_KEY_ID"),
             "RESEND_FROM_EMAIL": os.getenv("RESEND_FROM_EMAIL"),
+            "LANGFUSE_PUBLIC_KEY": os.getenv("LANGFUSE_PUBLIC_KEY"),
+            "LANGFUSE_SECRET_KEY": os.getenv("LANGFUSE_SECRET_KEY"),
+            "LANGFUSE_HOST": os.getenv("LANGFUSE_HOST"),
         }
         configuredValues = requiredValues.items()
         missingValues = [name for name, value in configuredValues if not value]
@@ -58,4 +64,7 @@ class Settings:
             usersTableName=usersTableName,
             resendFromEmail=requiredValues["RESEND_FROM_EMAIL"],
             openaiModel=os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
+            langfusePublicKey=requiredValues["LANGFUSE_PUBLIC_KEY"],
+            langfuseSecretKey=requiredValues["LANGFUSE_SECRET_KEY"],
+            langfuseHost=requiredValues["LANGFUSE_HOST"],
         )

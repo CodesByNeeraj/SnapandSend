@@ -57,7 +57,17 @@ class FakeBot:
 class BotTests(unittest.TestCase):
     def test_build_application_registers_start_done_and_text_handlers(self):
         settings = Settings(
-            "token", "openai", "resend", "kms", "region", "users", "from", "model"
+            "token",
+            "openai",
+            "resend",
+            "kms",
+            "region",
+            "users",
+            "from",
+            "model",
+            "langfuse-public",
+            "langfuse-secret",
+            "https://jp.cloud.langfuse.com",
         )
         with patch("src.bot.buildRuntime") as runtime:
             runtime.return_value.telegramUpdateAdapter.handleStart = object()
