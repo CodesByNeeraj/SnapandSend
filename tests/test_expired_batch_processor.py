@@ -5,7 +5,7 @@ from src.expired_batch_processor import ExpiredBatchProcessor
 
 class FakeBatchManager:
     def closeExpiredBatches(self, currentTime):
-        return {"one": [b"first"], "two": [b"second"]}
+        return {"one": [b"first"], "two": [b"second"], "three": [b"third"]}
 
 
 class FakeUserStore:
@@ -13,32 +13,34 @@ class FakeUserStore:
         self.pendingClears = []
 
     def getEmail(self, userId):
-        return f"{userId}@example.com"
+        return None if userId == "three" else f"{userId}@example.com"
 
     def clearBatchPending(self, userId):
         self.pendingClears.append(userId)
 
 
-class FakeOrchestrator:
-    def __init__(self):
-        self.requests = []
-
-    async def processBatch(self, email, images):
-        self.requests.append((email, images))
-
-
-class ExpiredBatchProcessorTests(unittest.IsolatedAsyncioTestCase):
-    async def test_process_expired_batches_uses_registered_emails(self):
-        orchestrator = FakeOrchestrator()
+class ExpiredBatchProcessorTests(unittest.TestCase):
+    def test_returns_recipient_and_images_only_for_users_with_a_registered_email(self):
         userStore = FakeUserStore()
-        processor = ExpiredBatchProcessor(FakeBatchManager(), userStore, orchestrator)
-        count = await processor.processExpiredBatches("now")
-        self.assertEqual(count, 2)
+        processor = ExpiredBatchProcessor(FakeBatchManager(), userStore)
+
+        ready = processor.closeExpiredBatchesForProcessing("now")
+
         self.assertEqual(
-            orchestrator.requests,
-            [("one@example.com", [b"first"]), ("two@example.com", [b"second"])],
+            ready,
+            [
+                ("one", "one@example.com", [b"first"]),
+                ("two", "two@example.com", [b"second"]),
+            ],
         )
-        self.assertEqual(userStore.pendingClears, ["one", "two"])
+
+    def test_clears_the_pending_flag_for_every_expired_user_including_no_email(self):
+        userStore = FakeUserStore()
+        processor = ExpiredBatchProcessor(FakeBatchManager(), userStore)
+
+        processor.closeExpiredBatchesForProcessing("now")
+
+        self.assertEqual(userStore.pendingClears, ["one", "two", "three"])
 
 
 if __name__ == "__main__":

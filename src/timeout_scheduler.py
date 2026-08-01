@@ -5,14 +5,14 @@ from typing import Any
 
 
 class TimeoutScheduler:
-    """Runs one expired-batch processing cycle."""
+    """Runs one expired-batch closure cycle."""
 
     def __init__(self, expiredBatchProcessor: Any):
         self.expiredBatchProcessor = expiredBatchProcessor
 
-    async def processExpiredBatches(self) -> int:
-        """Process batches inactive for the configured timeout window."""
+    def getExpiredBatchesForProcessing(self) -> list[tuple[str, str, list[bytes]]]:
+        """Close batches inactive for the configured timeout window."""
 
-        return await self.expiredBatchProcessor.processExpiredBatches(
+        return self.expiredBatchProcessor.closeExpiredBatchesForProcessing(
             datetime.now(timezone.utc)
         )

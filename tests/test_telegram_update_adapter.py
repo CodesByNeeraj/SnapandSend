@@ -66,6 +66,14 @@ class FailingDoneBatchRouter(FakeDoneBatchRouter):
         raise VisionExtractionError("failed")
 
 
+class FakeBot:
+    def __init__(self):
+        self.sentMessages = []
+
+    async def send_message(self, chat_id, text):
+        self.sentMessages.append((chat_id, text))
+
+
 class FakeDownloadedFile:
     async def download_as_bytearray(self):
         return bytearray(b"image")
@@ -160,6 +168,40 @@ class TelegramUpdateAdapterTests(unittest.IsolatedAsyncioTestCase):
         await backgroundTask
 
         self.assertIn("could not process", update.effective_message.replies[1])
+
+    async def test_notify_expired_batch_acknowledges_then_reports_email_sent(self):
+        bot = FakeBot()
+        adapter = TelegramUpdateAdapter(
+            FakeRouter(), doneBatchRouter=FakeDoneBatchRouter()
+        )
+
+        await adapter.notifyExpiredBatchProcessing(
+            bot, "user-1", "person@example.com", [b"image"]
+        )
+
+        self.assertEqual(
+            bot.sentMessages,
+            [
+                (
+                    "user-1",
+                    "I will update you when your images have been processed and "
+                    "the email has been sent!",
+                ),
+                ("user-1", "Email sent! Check your inbox for your notes."),
+            ],
+        )
+
+    async def test_notify_expired_batch_reports_processing_failure(self):
+        bot = FakeBot()
+        adapter = TelegramUpdateAdapter(
+            FakeRouter(), doneBatchRouter=FailingDoneBatchRouter()
+        )
+
+        await adapter.notifyExpiredBatchProcessing(
+            bot, "user-1", "person@example.com", [b"image"]
+        )
+
+        self.assertIn("could not process", bot.sentMessages[1][1])
 
     async def test_unsupported_upload_replies_with_router_response(self):
         update = FakeUpdate()
