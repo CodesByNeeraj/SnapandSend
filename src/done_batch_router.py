@@ -11,7 +11,7 @@ PROCESSING_STARTED_MESSAGE = (
 )
 EMAIL_SENT_MESSAGE = "Email sent! Check your inbox for your notes."
 UNREADABLE_BATCH_MESSAGE = (
-    "I could not find readable text in that batch. Please try clearer photos."
+    "I could not find readable text in the images. Please upload clearer photos."
 )
 
 
