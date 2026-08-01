@@ -21,6 +21,15 @@ mirror how the content actually appears on the source: a `paragraph` block
 for prose text, a `bullets` block for a list of points. Do not force prose
 into bullets or bullets into a paragraph, and use multiple blocks in order
 if the source mixes both.
+
+If the image contains a flowchart or diagram (boxes or steps connected by
+arrows), return a `flowchart` block instead of paragraph or bullets for that
+part of the image. List each distinct step once in `nodes`, and list each
+arrow as an edge with its `source` step, `target` step, and the arrow's
+label if it is annotated (such as "yes" or "no" on a decision branch), or an
+empty label if it is a plain unlabeled arrow. Preserve the diagram's actual
+shape: a straight sequence of steps becomes a chain of edges in order, and a
+branching or decision diagram becomes edges reflecting each branch.
 """.strip()
 EXTRACTION_ATTEMPTS = 2
 
@@ -42,7 +51,29 @@ BULLETS_BLOCK_SCHEMA = {
     "required": ["type", "items"],
     "additionalProperties": False,
 }
-CONTENT_BLOCK_SCHEMA = {"anyOf": [PARAGRAPH_BLOCK_SCHEMA, BULLETS_BLOCK_SCHEMA]}
+FLOWCHART_EDGE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "source": {"type": "string"},
+        "target": {"type": "string"},
+        "label": {"type": "string"},
+    },
+    "required": ["source", "target", "label"],
+    "additionalProperties": False,
+}
+FLOWCHART_BLOCK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "type": {"type": "string", "enum": ["flowchart"]},
+        "nodes": {"type": "array", "items": {"type": "string"}},
+        "edges": {"type": "array", "items": FLOWCHART_EDGE_SCHEMA},
+    },
+    "required": ["type", "nodes", "edges"],
+    "additionalProperties": False,
+}
+CONTENT_BLOCK_SCHEMA = {
+    "anyOf": [PARAGRAPH_BLOCK_SCHEMA, BULLETS_BLOCK_SCHEMA, FLOWCHART_BLOCK_SCHEMA]
+}
 
 EXTRACTION_RESPONSE_FORMAT = {
     "type": "json_schema",
@@ -67,12 +98,23 @@ class VisionExtractionError(RuntimeError):
 
 
 @dataclass(frozen=True)
-class ContentBlock:
-    """One paragraph or bullet list, in the order it appeared in the source."""
+class FlowchartEdge:
+    """One arrow in a flowchart, from one node to another."""
 
-    type: Literal["paragraph", "bullets"]
+    source: str
+    target: str
+    label: str
+
+
+@dataclass(frozen=True)
+class ContentBlock:
+    """One paragraph, bullet list, or flowchart, in source order."""
+
+    type: Literal["paragraph", "bullets", "flowchart"]
     text: str | None = None
     items: list[str] | None = None
+    nodes: list[str] | None = None
+    edges: list[FlowchartEdge] | None = None
 
 
 @dataclass(frozen=True)
@@ -147,9 +189,42 @@ def parseContentBlocks(rawBlocks: Any) -> list[ContentBlock]:
             if not validItems:
                 raise ValueError("bullets block is missing items")
             blocks.append(ContentBlock(type="bullets", items=items))
+        elif blockType == "flowchart":
+            blocks.append(parseFlowchartBlock(rawBlock))
         else:
             raise ValueError("block has an unknown type")
     return blocks
+
+
+def parseFlowchartBlock(rawBlock: dict) -> ContentBlock:
+    """Parse and validate a raw flowchart block dict."""
+
+    nodes = rawBlock.get("nodes")
+    edges = rawBlock.get("edges")
+    validNodes = isinstance(nodes, list) and all(
+        isinstance(node, str) for node in nodes
+    )
+    if not validNodes:
+        raise ValueError("flowchart block is missing nodes")
+    if not isinstance(edges, list):
+        raise ValueError("flowchart block is missing edges")
+
+    parsedEdges = []
+    for edge in edges:
+        if (
+            not isinstance(edge, dict)
+            or not isinstance(edge.get("source"), str)
+            or not isinstance(edge.get("target"), str)
+            or not isinstance(edge.get("label"), str)
+        ):
+            raise ValueError("flowchart edge does not match schema")
+        parsedEdges.append(
+            FlowchartEdge(
+                source=edge["source"], target=edge["target"], label=edge["label"]
+            )
+        )
+
+    return ContentBlock(type="flowchart", nodes=nodes, edges=parsedEdges)
 
 
 def parseExtractedDocument(outputText: str) -> ExtractedDocument:

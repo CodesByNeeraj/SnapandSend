@@ -3,7 +3,7 @@ import unittest
 
 from src.notes_curator import CuratedDocument, CuratedNotes, NotesCurator
 from src.notes_curator import NotesCurationError
-from src.vision_extractor import ContentBlock, ExtractedDocument
+from src.vision_extractor import ContentBlock, ExtractedDocument, FlowchartEdge
 
 
 class FakeResponses:
@@ -95,6 +95,46 @@ class NotesCuratorTests(unittest.IsolatedAsyncioTestCase):
             result.documents[0].blocks,
             [ContentBlock(type="paragraph", text="Free-form notes.")],
         )
+
+    async def test_curate_notes_preserves_flowchart_blocks(self):
+        outputText = json.dumps(
+            {
+                "documents": [
+                    {
+                        "title": "Deploy process",
+                        "blocks": [
+                            {
+                                "type": "flowchart",
+                                "nodes": ["Start", "Deploy"],
+                                "edges": [
+                                    {
+                                        "source": "Start",
+                                        "target": "Deploy",
+                                        "label": "",
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ]
+            }
+        )
+        client = FakeClient([FakeResponse(outputText)])
+        curator = NotesCurator(client, "gpt-5.6-terra")
+        flowchartBlock = ContentBlock(
+            type="flowchart",
+            nodes=["Start", "Deploy"],
+            edges=[FlowchartEdge(source="Start", target="Deploy", label="")],
+        )
+        documents = [
+            ExtractedDocument(
+                status="readable", title="Deploy process", blocks=[flowchartBlock]
+            )
+        ]
+
+        result = await curator.curateNotes(documents)
+
+        self.assertEqual(result.documents[0].blocks, [flowchartBlock])
 
     async def test_curate_notes_returns_empty_result_without_readable_documents(self):
         client = FakeClient([])

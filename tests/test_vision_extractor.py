@@ -2,7 +2,7 @@ import json
 import unittest
 
 from src.vision_extractor import ContentBlock, ExtractedDocument, VisionExtractionError
-from src.vision_extractor import VisionExtractor
+from src.vision_extractor import FlowchartEdge, VisionExtractor
 
 
 class FakeResponses:
@@ -131,6 +131,90 @@ class VisionExtractorTests(unittest.IsolatedAsyncioTestCase):
             await extractor.extractDocument(b"image-bytes")
 
         self.assertEqual(len(client.responses.calls), 1)
+
+    async def test_extract_document_returns_flowchart_block(self):
+        outputText = json.dumps(
+            {
+                "status": "readable",
+                "title": "Deploy process",
+                "blocks": [
+                    {
+                        "type": "flowchart",
+                        "nodes": ["Start", "Run tests", "Deploy"],
+                        "edges": [
+                            {"source": "Start", "target": "Run tests", "label": ""},
+                            {"source": "Run tests", "target": "Deploy", "label": ""},
+                        ],
+                    }
+                ],
+            }
+        )
+        client = FakeClient([FakeResponse(outputText)])
+        extractor = VisionExtractor(client, "gpt-5.6-terra")
+
+        result = await extractor.extractDocument(b"image-bytes")
+
+        self.assertEqual(
+            result.blocks,
+            [
+                ContentBlock(
+                    type="flowchart",
+                    nodes=["Start", "Run tests", "Deploy"],
+                    edges=[
+                        FlowchartEdge(source="Start", target="Run tests", label=""),
+                        FlowchartEdge(source="Run tests", target="Deploy", label=""),
+                    ],
+                )
+            ],
+        )
+
+    async def test_extract_document_returns_branching_flowchart_with_labels(self):
+        outputText = json.dumps(
+            {
+                "status": "readable",
+                "title": "Approval process",
+                "blocks": [
+                    {
+                        "type": "flowchart",
+                        "nodes": ["Submit", "Review", "Approve", "Reject"],
+                        "edges": [
+                            {"source": "Submit", "target": "Review", "label": ""},
+                            {
+                                "source": "Review",
+                                "target": "Approve",
+                                "label": "yes",
+                            },
+                            {"source": "Review", "target": "Reject", "label": "no"},
+                        ],
+                    }
+                ],
+            }
+        )
+        client = FakeClient([FakeResponse(outputText)])
+        extractor = VisionExtractor(client, "gpt-5.6-terra")
+
+        result = await extractor.extractDocument(b"image-bytes")
+
+        block = result.blocks[0]
+        self.assertEqual(block.type, "flowchart")
+        self.assertEqual(
+            block.edges[1],
+            FlowchartEdge(source="Review", target="Approve", label="yes"),
+        )
+
+    async def test_extract_document_rejects_flowchart_missing_edges(self):
+        outputText = json.dumps(
+            {
+                "status": "readable",
+                "title": "Broken diagram",
+                "blocks": [{"type": "flowchart", "nodes": ["A", "B"]}],
+            }
+        )
+        client = FakeClient([FakeResponse(outputText)])
+        extractor = VisionExtractor(client, "gpt-5.6-terra")
+
+        with self.assertRaises(VisionExtractionError):
+            await extractor.extractDocument(b"image-bytes")
 
     async def test_extract_document_rejects_block_with_unknown_type(self):
         outputText = json.dumps(

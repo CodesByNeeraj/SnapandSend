@@ -7,7 +7,7 @@ from src.email_sender import (
     renderEmailBodyHtml,
 )
 from src.notes_curator import CuratedDocument, CuratedNotes
-from src.vision_extractor import ContentBlock
+from src.vision_extractor import ContentBlock, FlowchartEdge
 
 
 def bulletsBlock(*items: str) -> list[ContentBlock]:
@@ -16,6 +16,14 @@ def bulletsBlock(*items: str) -> list[ContentBlock]:
 
 def paragraphBlock(text: str) -> list[ContentBlock]:
     return [ContentBlock(type="paragraph", text=text)]
+
+
+def flowchartBlock(nodes: list[str], edges: list[tuple[str, str, str]]) -> ContentBlock:
+    return ContentBlock(
+        type="flowchart",
+        nodes=nodes,
+        edges=[FlowchartEdge(source=s, target=t, label=label) for s, t, label in edges],
+    )
 
 
 class FakeEmailClient:
@@ -111,6 +119,71 @@ class EmailSenderTests(unittest.TestCase):
         self.assertIn("<p", html)
         self.assertIn("Free &amp; form &lt;notes&gt;</p>", html)
         self.assertNotIn("<ul", html)
+
+    def test_render_email_body_collapses_linear_flowchart_into_one_line(self):
+        block = flowchartBlock(
+            ["Start", "Run tests", "Deploy"],
+            [("Start", "Run tests", ""), ("Run tests", "Deploy", "")],
+        )
+        notes = CuratedNotes(
+            documents=[CuratedDocument(title="Deploy process", blocks=[block])]
+        )
+
+        body = renderEmailBody(notes)
+
+        self.assertEqual(
+            body,
+            "# Snap&Send notes\n\n## Deploy process\n\nStart → Run tests → Deploy",
+        )
+
+    def test_render_email_body_indents_branching_flowchart(self):
+        block = flowchartBlock(
+            ["Submit", "Review", "Approve", "Reject"],
+            [
+                ("Submit", "Review", ""),
+                ("Review", "Approve", "yes"),
+                ("Review", "Reject", "no"),
+            ],
+        )
+        notes = CuratedNotes(
+            documents=[CuratedDocument(title="Approval", blocks=[block])]
+        )
+
+        body = renderEmailBody(notes)
+
+        self.assertEqual(
+            body,
+            "# Snap&Send notes\n\n## Approval\n\nSubmit → Review\n"
+            "  -- yes --> Approve\n  -- no --> Reject",
+        )
+
+    def test_render_email_body_flowchart_survives_a_cycle(self):
+        block = flowchartBlock(["A", "B"], [("A", "B", ""), ("B", "A", "")])
+        notes = CuratedNotes(documents=[CuratedDocument(title="Loop", blocks=[block])])
+
+        body = renderEmailBody(notes)
+
+        self.assertEqual(body, "# Snap&Send notes\n\n## Loop\n\nA → B → A")
+
+    def test_render_email_body_html_indents_branching_flowchart(self):
+        block = flowchartBlock(
+            ["Submit", "Review", "Approve", "Reject"],
+            [
+                ("Submit", "Review", ""),
+                ("Review", "Approve", "yes"),
+                ("Review", "Reject", "no"),
+            ],
+        )
+        notes = CuratedNotes(
+            documents=[CuratedDocument(title="Approval", blocks=[block])]
+        )
+
+        html = renderEmailBodyHtml(notes)
+
+        self.assertIn("Submit → Review", html)
+        self.assertIn("-- yes --&gt; Approve", html)
+        self.assertIn("-- no --&gt; Reject", html)
+        self.assertIn("margin-left: 20px", html)
 
     def test_send_notes_sends_one_email_to_registered_address(self):
         client = FakeEmailClient()
