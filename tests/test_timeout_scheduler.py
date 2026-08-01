@@ -7,16 +7,16 @@ class FakeExpiredBatchProcessor:
     def __init__(self):
         self.currentTimes = []
 
-    async def processExpiredBatches(self, currentTime):
+    def closeExpiredBatchesForProcessing(self, currentTime):
         self.currentTimes.append(currentTime)
-        return 2
+        return [("user", "user@example.com", [b"image"])]
 
 
-class TimeoutSchedulerTests(unittest.IsolatedAsyncioTestCase):
-    async def test_process_expired_batches_runs_one_processing_cycle(self):
+class TimeoutSchedulerTests(unittest.TestCase):
+    def test_get_expired_batches_for_processing_runs_one_cycle(self):
         processor = FakeExpiredBatchProcessor()
-        result = await TimeoutScheduler(processor).processExpiredBatches()
-        self.assertEqual(result, 2)
+        result = TimeoutScheduler(processor).getExpiredBatchesForProcessing()
+        self.assertEqual(result, [("user", "user@example.com", [b"image"])])
         self.assertEqual(len(processor.currentTimes), 1)
 
 

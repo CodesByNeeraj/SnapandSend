@@ -113,13 +113,27 @@ class TelegramUpdateAdapter:
     ) -> None:
         """Finish processing a closed batch and report the outcome."""
 
-        try:
-            response = await self.doneBatchRouter.completeProcessing(
-                recipientEmail, images
-            )
-        except (EmailDeliveryError, NotesCurationError, VisionExtractionError):
-            response = PROCESSING_FAILURE_MESSAGE
+        response = await self._resolveProcessingOutcome(recipientEmail, images)
         await update.effective_message.reply_text(response)
+
+    async def notifyExpiredBatchProcessing(
+        self, bot: Any, userId: str, recipientEmail: str, images: list[bytes]
+    ) -> None:
+        """Notify a user their timed-out batch is processing, then report
+        the outcome, mirroring the two-message /done flow for a batch the
+        user never explicitly closed themselves."""
+
+        await bot.send_message(chat_id=userId, text=PROCESSING_STARTED_MESSAGE)
+        response = await self._resolveProcessingOutcome(recipientEmail, images)
+        await bot.send_message(chat_id=userId, text=response)
+
+    async def _resolveProcessingOutcome(
+        self, recipientEmail: str, images: list[bytes]
+    ) -> str:
+        try:
+            return await self.doneBatchRouter.completeProcessing(recipientEmail, images)
+        except (EmailDeliveryError, NotesCurationError, VisionExtractionError):
+            return PROCESSING_FAILURE_MESSAGE
 
     async def handleUnsupportedUpload(self, update: Any) -> None:
         """Handle a Telegram update carrying an unsupported content type."""
