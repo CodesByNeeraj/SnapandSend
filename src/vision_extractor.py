@@ -11,8 +11,10 @@ from openai import APIError
 EXTRACTION_PROMPT = """
 Examine this image. It may be a presentation slide, whiteboard, document page,
 handwritten note, or another image containing text. Extract only visible text
-and its structure. Preserve the source order and meaning. Do not infer, add,
-or correct information that is not visible.
+and its structure. Transcribe text verbatim, using the exact wording as it
+appears in the source. Do not paraphrase, summarize, or rewrite phrasing,
+even to make it more concise or grammatical. Preserve the source order. Do
+not infer, add, or correct information that is not visible.
 
 If the image is blurry, dark, textless, or otherwise unreadable, return status
 `unreadable`, an empty title, and no blocks. Otherwise return status
