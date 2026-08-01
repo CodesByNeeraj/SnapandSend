@@ -1,6 +1,6 @@
 """Trigger rule and fixed text for the periodic CSAT satisfaction survey."""
 
-SURVEY_MESSAGE = "How has your experience using Snap&Send so far? Rate out of 10."
+SURVEY_MESSAGE = "How has your experience using Snap&Send been so far? Rate out of 10."
 THANK_YOU_MESSAGE = "Thank you!"
 CSAT_CALLBACK_PREFIX = "csat:"
 FIRST_SURVEY_AT_USAGE_COUNT = 3
