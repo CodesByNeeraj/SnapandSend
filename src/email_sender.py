@@ -11,10 +11,13 @@ EMAIL_SUBJECT = "Your Snap&Send notes"
 
 HTML_BODY_STYLE = "font-family: sans-serif; color: #1a1a1a; line-height: 1.5;"
 HTML_HEADING_STYLE = "margin: 24px 0 8px;"
+HTML_SUBHEADING_STYLE = "margin: 16px 0 4px;"
 HTML_LIST_STYLE = "margin: 0 0 16px; padding-left: 20px;"
 HTML_PARAGRAPH_STYLE = "margin: 0 0 16px;"
 HTML_FLOWCHART_LINE_STYLE = "margin: 0 0 4px;"
 FLOWCHART_INDENT_PX = 20
+HTML_TABLE_STYLE = "border-collapse: collapse; margin: 0 0 16px;"
+HTML_TABLE_CELL_STYLE = "border: 1px solid #ccc; padding: 4px 8px; text-align: left;"
 
 FLOWCHART_ARROW = "→"
 
@@ -79,10 +82,17 @@ def renderFlowchartLines(block: ContentBlock) -> list[FlowchartLine]:
 def renderContentBlockText(block: ContentBlock) -> str:
     """Render one content block as plain text."""
 
+    if block.type == "heading":
+        return f"### {block.text}"
     if block.type == "paragraph":
         return block.text
     if block.type == "bullets":
         return "\n".join(f"- {item}" for item in block.items)
+    if block.type == "table":
+        headerRow = f"| {' | '.join(block.headers)} |"
+        separatorRow = f"| {' | '.join('---' for _ in block.headers)} |"
+        dataRows = [f"| {' | '.join(row)} |" for row in block.rows]
+        return "\n".join([headerRow, separatorRow, *dataRows])
     lines = renderFlowchartLines(block)
     return "\n".join(("  " * line.depth) + line.text for line in lines)
 
@@ -90,11 +100,33 @@ def renderContentBlockText(block: ContentBlock) -> str:
 def renderContentBlockHtml(block: ContentBlock) -> str:
     """Render one content block as an HTML fragment."""
 
+    if block.type == "heading":
+        return f'<h3 style="{HTML_SUBHEADING_STYLE}">{html.escape(block.text)}</h3>'
     if block.type == "paragraph":
         return f'<p style="{HTML_PARAGRAPH_STYLE}">{html.escape(block.text)}</p>'
     if block.type == "bullets":
         items = "".join(f"<li>{html.escape(item)}</li>" for item in block.items)
         return f'<ul style="{HTML_LIST_STYLE}">{items}</ul>'
+    if block.type == "table":
+        headerCells = "".join(
+            f'<th style="{HTML_TABLE_CELL_STYLE}">{html.escape(header)}</th>'
+            for header in block.headers
+        )
+        bodyRows = "".join(
+            "<tr>"
+            + "".join(
+                f'<td style="{HTML_TABLE_CELL_STYLE}">{html.escape(cell)}</td>'
+                for cell in row
+            )
+            + "</tr>"
+            for row in block.rows
+        )
+        return (
+            f'<table style="{HTML_TABLE_STYLE}">'
+            f"<thead><tr>{headerCells}</tr></thead>"
+            f"<tbody>{bodyRows}</tbody>"
+            "</table>"
+        )
     rows = []
     for line in renderFlowchartLines(block):
         indent = FLOWCHART_INDENT_PX * line.depth

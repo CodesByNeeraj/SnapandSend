@@ -22,6 +22,12 @@ for prose text, a `bullets` block for a list of points. Do not force prose
 into bullets or bullets into a paragraph, and use multiple blocks in order
 if the source mixes both.
 
+If a short bold or otherwise visually distinct sub-label introduces the text
+that follows it (for example a small heading above its own paragraph or
+bullet list within the slide), return that sub-label as its own `heading`
+block immediately before the block it introduces. Never merge a sub-label
+into the text that follows it as a single paragraph or bullet.
+
 If the image contains a flowchart or diagram (boxes or steps connected by
 arrows), return a `flowchart` block instead of paragraph or bullets for that
 part of the image. List each distinct step once in `nodes`, and list each
@@ -30,9 +36,24 @@ label if it is annotated (such as "yes" or "no" on a decision branch), or an
 empty label if it is a plain unlabeled arrow. Preserve the diagram's actual
 shape: a straight sequence of steps becomes a chain of edges in order, and a
 branching or decision diagram becomes edges reflecting each branch.
+
+If the image contains a table (rows and columns of data), return a `table`
+block instead of paragraph or bullets for that part of the image. List the
+column headers once in `headers`, and list each data row in `rows` as an
+array of cell values in the same column order as `headers`. Do not flatten a
+table into a bullet list or paragraph.
 """.strip()
 EXTRACTION_ATTEMPTS = 2
 
+HEADING_BLOCK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "type": {"type": "string", "enum": ["heading"]},
+        "text": {"type": "string"},
+    },
+    "required": ["type", "text"],
+    "additionalProperties": False,
+}
 PARAGRAPH_BLOCK_SCHEMA = {
     "type": "object",
     "properties": {
@@ -71,8 +92,27 @@ FLOWCHART_BLOCK_SCHEMA = {
     "required": ["type", "nodes", "edges"],
     "additionalProperties": False,
 }
+TABLE_BLOCK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "type": {"type": "string", "enum": ["table"]},
+        "headers": {"type": "array", "items": {"type": "string"}},
+        "rows": {
+            "type": "array",
+            "items": {"type": "array", "items": {"type": "string"}},
+        },
+    },
+    "required": ["type", "headers", "rows"],
+    "additionalProperties": False,
+}
 CONTENT_BLOCK_SCHEMA = {
-    "anyOf": [PARAGRAPH_BLOCK_SCHEMA, BULLETS_BLOCK_SCHEMA, FLOWCHART_BLOCK_SCHEMA]
+    "anyOf": [
+        HEADING_BLOCK_SCHEMA,
+        PARAGRAPH_BLOCK_SCHEMA,
+        BULLETS_BLOCK_SCHEMA,
+        FLOWCHART_BLOCK_SCHEMA,
+        TABLE_BLOCK_SCHEMA,
+    ]
 }
 
 EXTRACTION_RESPONSE_FORMAT = {
@@ -108,13 +148,15 @@ class FlowchartEdge:
 
 @dataclass(frozen=True)
 class ContentBlock:
-    """One paragraph, bullet list, or flowchart, in source order."""
+    """One heading, paragraph, bullet list, flowchart, or table, in order."""
 
-    type: Literal["paragraph", "bullets", "flowchart"]
+    type: Literal["heading", "paragraph", "bullets", "flowchart", "table"]
     text: str | None = None
     items: list[str] | None = None
     nodes: list[str] | None = None
     edges: list[FlowchartEdge] | None = None
+    headers: list[str] | None = None
+    rows: list[list[str]] | None = None
 
 
 @dataclass(frozen=True)
@@ -176,7 +218,12 @@ def parseContentBlocks(rawBlocks: Any) -> list[ContentBlock]:
         if not isinstance(rawBlock, dict):
             raise ValueError("block is not an object")
         blockType = rawBlock.get("type")
-        if blockType == "paragraph":
+        if blockType == "heading":
+            text = rawBlock.get("text")
+            if not isinstance(text, str):
+                raise ValueError("heading block is missing text")
+            blocks.append(ContentBlock(type="heading", text=text))
+        elif blockType == "paragraph":
             text = rawBlock.get("text")
             if not isinstance(text, str):
                 raise ValueError("paragraph block is missing text")
@@ -191,6 +238,8 @@ def parseContentBlocks(rawBlocks: Any) -> list[ContentBlock]:
             blocks.append(ContentBlock(type="bullets", items=items))
         elif blockType == "flowchart":
             blocks.append(parseFlowchartBlock(rawBlock))
+        elif blockType == "table":
+            blocks.append(parseTableBlock(rawBlock))
         else:
             raise ValueError("block has an unknown type")
     return blocks
@@ -225,6 +274,26 @@ def parseFlowchartBlock(rawBlock: dict) -> ContentBlock:
         )
 
     return ContentBlock(type="flowchart", nodes=nodes, edges=parsedEdges)
+
+
+def parseTableBlock(rawBlock: dict) -> ContentBlock:
+    """Parse and validate a raw table block dict."""
+
+    headers = rawBlock.get("headers")
+    rows = rawBlock.get("rows")
+    validHeaders = isinstance(headers, list) and all(
+        isinstance(header, str) for header in headers
+    )
+    if not validHeaders:
+        raise ValueError("table block is missing headers")
+    validRows = isinstance(rows, list) and all(
+        isinstance(row, list) and all(isinstance(cell, str) for cell in row)
+        for row in rows
+    )
+    if not validRows:
+        raise ValueError("table block is missing rows")
+
+    return ContentBlock(type="table", headers=headers, rows=rows)
 
 
 def parseExtractedDocument(outputText: str) -> ExtractedDocument:
