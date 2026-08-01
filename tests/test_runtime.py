@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from src.config import Settings
 from src.runtime import buildRuntime
+from src.trace_masking import maskImageData
 
 
 class FakeDynamoResource:
@@ -21,14 +22,24 @@ class RuntimeTests(unittest.TestCase):
             "users",
             "from@example.com",
             "model",
+            "langfuse-public",
+            "langfuse-secret",
+            "https://jp.cloud.langfuse.com",
         )
         with patch("src.runtime.boto3.resource", return_value=FakeDynamoResource()):
             with patch("src.runtime.boto3.client", return_value=object()):
                 with patch("src.runtime.AsyncOpenAI"):
                     with patch("src.runtime.ResendClient"):
-                        runtime = buildRuntime(settings)
+                        with patch("src.runtime.Langfuse") as langfuse:
+                            runtime = buildRuntime(settings)
         self.assertIsNotNone(runtime.telegramUpdateAdapter)
         self.assertIsNotNone(runtime.timeoutScheduler)
+        langfuse.assert_called_once_with(
+            public_key="langfuse-public",
+            secret_key="langfuse-secret",
+            host="https://jp.cloud.langfuse.com",
+            mask=maskImageData,
+        )
 
 
 if __name__ == "__main__":

@@ -15,4 +15,7 @@ Pillow~=10.0
  
 # Load env vars from .env in local development
 python-dotenv~=1.0
+
+# LLM call tracing and observability
+langfuse~=4.14
  

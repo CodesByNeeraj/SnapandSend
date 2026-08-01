@@ -5,7 +5,8 @@ from typing import Any
 
 import boto3
 import resend
-from openai import AsyncOpenAI
+from langfuse import Langfuse
+from langfuse.openai import AsyncOpenAI
 
 from src.batch_manager import BatchManager
 from src.batch_orchestrator import BatchOrchestrator
@@ -20,6 +21,7 @@ from src.rate_limiter import RateLimiter
 from src.telegram_router import TelegramRouter
 from src.telegram_update_adapter import TelegramUpdateAdapter
 from src.timeout_scheduler import TimeoutScheduler
+from src.trace_masking import maskImageData
 from src.user_store import KmsEmailEncryptor, UserStore
 from src.vision_extractor import VisionExtractor
 
@@ -53,6 +55,12 @@ def buildRuntime(settings: Settings) -> Runtime:
     usersTable = dynamoResource.Table(settings.usersTableName)
     kmsClient = boto3.client("kms", region_name=settings.awsRegion)
     userStore = UserStore(usersTable, KmsEmailEncryptor(kmsClient, settings.kmsKeyId))
+    Langfuse(
+        public_key=settings.langfusePublicKey,
+        secret_key=settings.langfuseSecretKey,
+        host=settings.langfuseHost,
+        mask=maskImageData,
+    )
     openaiClient = AsyncOpenAI(api_key=settings.openaiApiKey)
     visionExtractor = VisionExtractor(openaiClient, settings.openaiModel)
     notesCurator = NotesCurator(openaiClient, settings.openaiModel)

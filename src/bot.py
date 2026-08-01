@@ -1,6 +1,13 @@
 """Telegram long-polling entrypoint for Snap&Send."""
 
-from telegram.ext import (
+from dotenv import load_dotenv
+
+# Loaded before src.runtime so LANGFUSE_* env vars are already set by the
+# time that module imports langfuse.openai, per Langfuse's own guidance on
+# import order.
+load_dotenv()
+
+from telegram.ext import (  # noqa: E402
     Application,
     ApplicationBuilder,
     CommandHandler,
@@ -8,9 +15,9 @@ from telegram.ext import (
     filters,
 )
 
-from src.config import Settings
-from src.restart_notifier import RestartNotifier
-from src.runtime import buildRuntime
+from src.config import Settings  # noqa: E402
+from src.restart_notifier import RestartNotifier  # noqa: E402
+from src.runtime import buildRuntime  # noqa: E402
 
 TIMEOUT_CHECK_SECONDS = 30
 
