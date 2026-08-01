@@ -3,7 +3,7 @@ import unittest
 
 from src.notes_curator import CuratedDocument, CuratedNotes, NotesCurator
 from src.notes_curator import NotesCurationError
-from src.vision_extractor import ExtractedDocument
+from src.vision_extractor import ContentBlock, ExtractedDocument
 
 
 class FakeResponses:
@@ -32,25 +32,25 @@ class FakeResponse:
 class NotesCuratorTests(unittest.IsolatedAsyncioTestCase):
     async def test_curate_notes_omits_unreadable_and_duplicate_documents(self):
         outputText = json.dumps(
-            {"documents": [{"title": "Project plan", "bullets": ["First milestone"]}]}
+            {
+                "documents": [
+                    {
+                        "title": "Project plan",
+                        "blocks": [{"type": "bullets", "items": ["First milestone"]}],
+                    }
+                ]
+            }
         )
         client = FakeClient([FakeResponse(outputText)])
         curator = NotesCurator(client, "gpt-5.6-terra")
+        bulletsBlock = [ContentBlock(type="bullets", items=["First milestone"])]
         documents = [
             ExtractedDocument(
-                status="readable",
-                title="Project plan",
-                bullets=["First milestone"],
+                status="readable", title="Project plan", blocks=bulletsBlock
             ),
+            ExtractedDocument(status="unreadable", title="", blocks=[]),
             ExtractedDocument(
-                status="unreadable",
-                title="",
-                bullets=[],
-            ),
-            ExtractedDocument(
-                status="readable",
-                title="Project plan",
-                bullets=["First milestone"],
+                status="readable", title="Project plan", blocks=bulletsBlock
             ),
         ]
 
@@ -59,12 +59,7 @@ class NotesCuratorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             result,
             CuratedNotes(
-                documents=[
-                    CuratedDocument(
-                        title="Project plan",
-                        bullets=["First milestone"],
-                    )
-                ]
+                documents=[CuratedDocument(title="Project plan", blocks=bulletsBlock)]
             ),
         )
         request = client.responses.calls[0]
@@ -73,10 +68,38 @@ class NotesCuratorTests(unittest.IsolatedAsyncioTestCase):
         submittedDocuments = json.loads(request["input"][0]["content"][1]["text"])
         self.assertEqual(len(submittedDocuments), 2)
 
+    async def test_curate_notes_preserves_paragraph_blocks(self):
+        outputText = json.dumps(
+            {
+                "documents": [
+                    {
+                        "title": "Whiteboard",
+                        "blocks": [{"type": "paragraph", "text": "Free-form notes."}],
+                    }
+                ]
+            }
+        )
+        client = FakeClient([FakeResponse(outputText)])
+        curator = NotesCurator(client, "gpt-5.6-terra")
+        documents = [
+            ExtractedDocument(
+                status="readable",
+                title="Whiteboard",
+                blocks=[ContentBlock(type="paragraph", text="Free-form notes.")],
+            )
+        ]
+
+        result = await curator.curateNotes(documents)
+
+        self.assertEqual(
+            result.documents[0].blocks,
+            [ContentBlock(type="paragraph", text="Free-form notes.")],
+        )
+
     async def test_curate_notes_returns_empty_result_without_readable_documents(self):
         client = FakeClient([])
         curator = NotesCurator(client, "gpt-5.6-terra")
-        documents = [ExtractedDocument(status="unreadable", title="", bullets=[])]
+        documents = [ExtractedDocument(status="unreadable", title="", blocks=[])]
 
         result = await curator.curateNotes(documents)
 
@@ -87,7 +110,11 @@ class NotesCuratorTests(unittest.IsolatedAsyncioTestCase):
         client = FakeClient([TimeoutError("temporary"), TimeoutError("failed")])
         curator = NotesCurator(client, "gpt-5.6-terra")
         documents = [
-            ExtractedDocument(status="readable", title="Title", bullets=["Point"])
+            ExtractedDocument(
+                status="readable",
+                title="Title",
+                blocks=[ContentBlock(type="bullets", items=["Point"])],
+            )
         ]
 
         with self.assertRaises(NotesCurationError):
@@ -97,11 +124,15 @@ class NotesCuratorTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_curate_notes_rejects_invalid_response_schema(self):
         client = FakeClient(
-            [FakeResponse('{"documents":[{"title":"Missing bullets"}]}')]
+            [FakeResponse('{"documents":[{"title":"Missing blocks"}]}')]
         )
         curator = NotesCurator(client, "gpt-5.6-terra")
         documents = [
-            ExtractedDocument(status="readable", title="Title", bullets=["Point"])
+            ExtractedDocument(
+                status="readable",
+                title="Title",
+                blocks=[ContentBlock(type="bullets", items=["Point"])],
+            )
         ]
 
         with self.assertRaises(NotesCurationError):

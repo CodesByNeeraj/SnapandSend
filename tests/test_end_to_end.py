@@ -8,12 +8,14 @@ from src.email_sender import EmailSender
 from src.notes_curator import CuratedDocument, CuratedNotes
 from src.photo_batch_router import PhotoBatchRouter
 from src.rate_limiter import RateLimiter
-from src.vision_extractor import ExtractedDocument
+from src.vision_extractor import ContentBlock, ExtractedDocument
+
+SLIDE_BULLETS = [ContentBlock(type="bullets", items=["First point"])]
 
 
 class FakeVisionExtractor:
     async def extractDocument(self, imageBytes):
-        return ExtractedDocument("readable", "Slide title", ["First point"])
+        return ExtractedDocument("readable", "Slide title", SLIDE_BULLETS)
 
 
 class FailingVisionExtractor:
@@ -23,7 +25,7 @@ class FailingVisionExtractor:
 
 class FakeNotesCurator:
     async def curateNotes(self, documents):
-        return CuratedNotes([CuratedDocument("Slide title", ["First point"])])
+        return CuratedNotes([CuratedDocument("Slide title", SLIDE_BULLETS)])
 
 
 class FakeEmailClient:

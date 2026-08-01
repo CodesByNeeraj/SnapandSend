@@ -7,6 +7,15 @@ from src.email_sender import (
     renderEmailBodyHtml,
 )
 from src.notes_curator import CuratedDocument, CuratedNotes
+from src.vision_extractor import ContentBlock
+
+
+def bulletsBlock(*items: str) -> list[ContentBlock]:
+    return [ContentBlock(type="bullets", items=list(items))]
+
+
+def paragraphBlock(text: str) -> list[ContentBlock]:
+    return [ContentBlock(type="paragraph", text=text)]
 
 
 class FakeEmailClient:
@@ -22,8 +31,12 @@ class EmailSenderTests(unittest.TestCase):
     def test_render_email_body_formats_curated_documents_in_order(self):
         notes = CuratedNotes(
             documents=[
-                CuratedDocument(title="First slide", bullets=["First point"]),
-                CuratedDocument(title="Second slide", bullets=["Second point"]),
+                CuratedDocument(
+                    title="First slide", blocks=bulletsBlock("First point")
+                ),
+                CuratedDocument(
+                    title="Second slide", blocks=bulletsBlock("Second point")
+                ),
             ]
         )
 
@@ -31,14 +44,49 @@ class EmailSenderTests(unittest.TestCase):
 
         self.assertEqual(
             body,
-            "# Snap&Send notes\n\n## First slide\n- First point\n\n"
-            "## Second slide\n- Second point",
+            "# Snap&Send notes\n\n## First slide\n\n- First point\n\n"
+            "## Second slide\n\n- Second point",
+        )
+
+    def test_render_email_body_keeps_paragraph_blocks_as_prose(self):
+        notes = CuratedNotes(
+            documents=[
+                CuratedDocument(
+                    title="Whiteboard", blocks=paragraphBlock("Free-form notes.")
+                )
+            ]
+        )
+
+        body = renderEmailBody(notes)
+
+        self.assertEqual(body, "# Snap&Send notes\n\n## Whiteboard\n\nFree-form notes.")
+
+    def test_render_email_body_preserves_mixed_block_order(self):
+        notes = CuratedNotes(
+            documents=[
+                CuratedDocument(
+                    title="Mixed slide",
+                    blocks=[
+                        ContentBlock(type="paragraph", text="Intro."),
+                        ContentBlock(type="bullets", items=["First", "Second"]),
+                    ],
+                )
+            ]
+        )
+
+        body = renderEmailBody(notes)
+
+        self.assertEqual(
+            body,
+            "# Snap&Send notes\n\n## Mixed slide\n\nIntro.\n\n- First\n- Second",
         )
 
     def test_render_email_body_html_escapes_content_and_formats_lists(self):
         notes = CuratedNotes(
             documents=[
-                CuratedDocument(title="First <slide>", bullets=["A & B", "point"]),
+                CuratedDocument(
+                    title="First <slide>", blocks=bulletsBlock("A & B", "point")
+                ),
             ]
         )
 
@@ -49,12 +97,29 @@ class EmailSenderTests(unittest.TestCase):
         self.assertIn("<li>point</li>", html)
         self.assertNotIn("<slide>", html)
 
+    def test_render_email_body_html_renders_paragraph_as_p_tag(self):
+        notes = CuratedNotes(
+            documents=[
+                CuratedDocument(
+                    title="Whiteboard", blocks=paragraphBlock("Free & form <notes>")
+                )
+            ]
+        )
+
+        html = renderEmailBodyHtml(notes)
+
+        self.assertIn("<p", html)
+        self.assertIn("Free &amp; form &lt;notes&gt;</p>", html)
+        self.assertNotIn("<ul", html)
+
     def test_send_notes_sends_one_email_to_registered_address(self):
         client = FakeEmailClient()
         sender = EmailSender(client, "notes@example.com")
 
         notes = CuratedNotes(
-            documents=[CuratedDocument(title="Slide title", bullets=["First point"])]
+            documents=[
+                CuratedDocument(title="Slide title", blocks=bulletsBlock("First point"))
+            ]
         )
         result = sender.sendNotesEmail("person@example.com", notes)
 
@@ -79,7 +144,9 @@ class EmailSenderTests(unittest.TestCase):
         client.send = lambda request: (_ for _ in ()).throw(RuntimeError("failed"))
         sender = EmailSender(client, "notes@example.com")
         notes = CuratedNotes(
-            documents=[CuratedDocument(title="Slide title", bullets=["First point"])]
+            documents=[
+                CuratedDocument(title="Slide title", blocks=bulletsBlock("First point"))
+            ]
         )
 
         with self.assertRaises(EmailDeliveryError):

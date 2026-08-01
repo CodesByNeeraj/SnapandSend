@@ -7,12 +7,14 @@ from typing import Any
 
 from openai import APIError
 
-from src.vision_extractor import ExtractedDocument
+from src.vision_extractor import CONTENT_BLOCK_SCHEMA, ContentBlock, ExtractedDocument
+from src.vision_extractor import parseContentBlocks
 
 CURATION_PROMPT = """
 Combine these extracted documents into concise notes. Omit near-duplicate
 documents, preserve the source order of distinct documents, and do not add or
-rewrite facts. Return each kept document with its title and ordered bullets.
+rewrite facts. Return each kept document with its title and its blocks,
+preserving whether each block was a paragraph or a bullet list.
 """.strip()
 CURATION_ATTEMPTS = 2
 CURATION_RESPONSE_FORMAT = {
@@ -29,9 +31,9 @@ CURATION_RESPONSE_FORMAT = {
                     "type": "object",
                     "properties": {
                         "title": {"type": "string"},
-                        "bullets": {"type": "array", "items": {"type": "string"}},
+                        "blocks": {"type": "array", "items": CONTENT_BLOCK_SCHEMA},
                     },
-                    "required": ["title", "bullets"],
+                    "required": ["title", "blocks"],
                     "additionalProperties": False,
                 },
             }
@@ -51,7 +53,7 @@ class CuratedDocument:
     """One curated document ready for email rendering."""
 
     title: str
-    bullets: list[str]
+    blocks: list[ContentBlock]
 
 
 @dataclass(frozen=True)
@@ -118,11 +120,14 @@ def parseCuratedNotes(outputText: str) -> CuratedNotes:
     curatedDocuments = []
     for document in documents:
         title = document.get("title") if isinstance(document, dict) else None
-        bullets = document.get("bullets") if isinstance(document, dict) else None
-        if not isinstance(title, str) or not isinstance(bullets, list):
+        if not isinstance(title, str):
             raise NotesCurationError("OpenAI curation response does not match schema")
-        if not all(isinstance(bullet, str) for bullet in bullets):
-            raise NotesCurationError("OpenAI curation response does not match schema")
-        curatedDocuments.append(CuratedDocument(title=title, bullets=bullets))
+        try:
+            blocks = parseContentBlocks(document.get("blocks"))
+        except ValueError as error:
+            raise NotesCurationError(
+                "OpenAI curation response does not match schema"
+            ) from error
+        curatedDocuments.append(CuratedDocument(title=title, blocks=blocks))
 
     return CuratedNotes(documents=curatedDocuments)

@@ -10,6 +10,7 @@ EMAIL_SUBJECT = "Your Snap&Send notes"
 HTML_BODY_STYLE = "font-family: sans-serif; color: #1a1a1a; line-height: 1.5;"
 HTML_HEADING_STYLE = "margin: 24px 0 8px;"
 HTML_LIST_STYLE = "margin: 0 0 16px; padding-left: 20px;"
+HTML_PARAGRAPH_STYLE = "margin: 0 0 16px;"
 
 
 class EmailDeliveryError(RuntimeError):
@@ -25,8 +26,13 @@ def renderEmailBody(notes: CuratedNotes) -> str:
 
     sections = []
     for document in notes.documents:
-        bullets = "\n".join(f"- {bullet}" for bullet in document.bullets)
-        sections.append(f"## {document.title}\n{bullets}".rstrip())
+        parts = [f"## {document.title}"]
+        for block in document.blocks:
+            if block.type == "paragraph":
+                parts.append(block.text)
+            else:
+                parts.append("\n".join(f"- {item}" for item in block.items))
+        sections.append("\n\n".join(parts).rstrip())
     return "# Snap&Send notes\n\n" + "\n\n".join(sections)
 
 
@@ -35,12 +41,18 @@ def renderEmailBodyHtml(notes: CuratedNotes) -> str:
 
     sections = []
     for document in notes.documents:
-        bullets = "".join(
-            f"<li>{html.escape(bullet)}</li>" for bullet in document.bullets
-        )
+        blockHtml = []
+        for block in document.blocks:
+            if block.type == "paragraph":
+                blockHtml.append(
+                    f'<p style="{HTML_PARAGRAPH_STYLE}">{html.escape(block.text)}</p>'
+                )
+            else:
+                items = "".join(f"<li>{html.escape(item)}</li>" for item in block.items)
+                blockHtml.append(f'<ul style="{HTML_LIST_STYLE}">{items}</ul>')
         sections.append(
             f'<h2 style="{HTML_HEADING_STYLE}">{html.escape(document.title)}</h2>'
-            f'<ul style="{HTML_LIST_STYLE}">{bullets}</ul>'
+            + "".join(blockHtml)
         )
     heading = f'<h1 style="{HTML_HEADING_STYLE}">Snap&amp;Send notes</h1>'
     return f'<div style="{HTML_BODY_STYLE}">' + heading + "".join(sections) + "</div>"

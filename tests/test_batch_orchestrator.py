@@ -2,7 +2,7 @@ import unittest
 
 from src.batch_orchestrator import BatchOrchestrator
 from src.notes_curator import CuratedDocument, CuratedNotes
-from src.vision_extractor import ExtractedDocument
+from src.vision_extractor import ContentBlock, ExtractedDocument
 
 
 class FakeVisionExtractor:
@@ -39,10 +39,12 @@ class FakeEmailSender:
 
 class BatchOrchestratorTests(unittest.IsolatedAsyncioTestCase):
     async def test_process_batch_preserves_image_order_and_sends_one_email(self):
-        first = ExtractedDocument("readable", "First", ["One"])
-        second = ExtractedDocument("readable", "Second", ["Two"])
+        oneBullet = [ContentBlock(type="bullets", items=["One"])]
+        twoBullet = [ContentBlock(type="bullets", items=["Two"])]
+        first = ExtractedDocument("readable", "First", oneBullet)
+        second = ExtractedDocument("readable", "Second", twoBullet)
         vision = FakeVisionExtractor([first, second])
-        curated = CuratedNotes([CuratedDocument("First", ["One"])])
+        curated = CuratedNotes([CuratedDocument("First", oneBullet)])
         curator = FakeNotesCurator(curated)
         emailSender = FakeEmailSender()
         orchestrator = BatchOrchestrator(vision, curator, emailSender)

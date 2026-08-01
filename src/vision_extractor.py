@@ -15,10 +15,35 @@ and its structure. Preserve the source order and meaning. Do not infer, add,
 or correct information that is not visible.
 
 If the image is blurry, dark, textless, or otherwise unreadable, return status
-`unreadable`, an empty title, and no bullets. Otherwise return status
-`readable`, a concise title, and the extracted points as ordered bullets.
+`unreadable`, an empty title, and no blocks. Otherwise return status
+`readable`, a concise title, and the body as an ordered list of blocks that
+mirror how the content actually appears on the source: a `paragraph` block
+for prose text, a `bullets` block for a list of points. Do not force prose
+into bullets or bullets into a paragraph, and use multiple blocks in order
+if the source mixes both.
 """.strip()
 EXTRACTION_ATTEMPTS = 2
+
+PARAGRAPH_BLOCK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "type": {"type": "string", "enum": ["paragraph"]},
+        "text": {"type": "string"},
+    },
+    "required": ["type", "text"],
+    "additionalProperties": False,
+}
+BULLETS_BLOCK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "type": {"type": "string", "enum": ["bullets"]},
+        "items": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["type", "items"],
+    "additionalProperties": False,
+}
+CONTENT_BLOCK_SCHEMA = {"anyOf": [PARAGRAPH_BLOCK_SCHEMA, BULLETS_BLOCK_SCHEMA]}
+
 EXTRACTION_RESPONSE_FORMAT = {
     "type": "json_schema",
     "name": "extracted_document",
@@ -29,9 +54,9 @@ EXTRACTION_RESPONSE_FORMAT = {
         "properties": {
             "status": {"type": "string", "enum": ["readable", "unreadable"]},
             "title": {"type": "string"},
-            "bullets": {"type": "array", "items": {"type": "string"}},
+            "blocks": {"type": "array", "items": CONTENT_BLOCK_SCHEMA},
         },
-        "required": ["status", "title", "bullets"],
+        "required": ["status", "title", "blocks"],
         "additionalProperties": False,
     },
 }
@@ -42,12 +67,21 @@ class VisionExtractionError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class ContentBlock:
+    """One paragraph or bullet list, in the order it appeared in the source."""
+
+    type: Literal["paragraph", "bullets"]
+    text: str | None = None
+    items: list[str] | None = None
+
+
+@dataclass(frozen=True)
 class ExtractedDocument:
     """Text extracted from one uploaded image."""
 
     status: Literal["readable", "unreadable"]
     title: str
-    bullets: list[str]
+    blocks: list[ContentBlock]
 
 
 class VisionExtractor:
@@ -89,6 +123,35 @@ class VisionExtractor:
         ) from lastError
 
 
+def parseContentBlocks(rawBlocks: Any) -> list[ContentBlock]:
+    """Parse and validate a list of raw block dicts from a model response."""
+
+    if not isinstance(rawBlocks, list):
+        raise ValueError("blocks is not a list")
+
+    blocks = []
+    for rawBlock in rawBlocks:
+        if not isinstance(rawBlock, dict):
+            raise ValueError("block is not an object")
+        blockType = rawBlock.get("type")
+        if blockType == "paragraph":
+            text = rawBlock.get("text")
+            if not isinstance(text, str):
+                raise ValueError("paragraph block is missing text")
+            blocks.append(ContentBlock(type="paragraph", text=text))
+        elif blockType == "bullets":
+            items = rawBlock.get("items")
+            validItems = isinstance(items, list) and all(
+                isinstance(item, str) for item in items
+            )
+            if not validItems:
+                raise ValueError("bullets block is missing items")
+            blocks.append(ContentBlock(type="bullets", items=items))
+        else:
+            raise ValueError("block has an unknown type")
+    return blocks
+
+
 def parseExtractedDocument(outputText: str) -> ExtractedDocument:
     """Parse and validate the OpenAI structured response."""
 
@@ -104,14 +167,16 @@ def parseExtractedDocument(outputText: str) -> ExtractedDocument:
 
     status = output.get("status")
     title = output.get("title")
-    bullets = output.get("bullets")
     validStatus = status in {"readable", "unreadable"}
-    validBullets = isinstance(bullets, list) and all(
-        isinstance(bullet, str) for bullet in bullets
-    )
-    if not validStatus or not isinstance(title, str) or not validBullets:
+    if not validStatus or not isinstance(title, str):
         raise VisionExtractionError("OpenAI response does not match schema")
-    if status == "unreadable" and (title or bullets):
+
+    try:
+        blocks = parseContentBlocks(output.get("blocks"))
+    except ValueError as error:
+        raise VisionExtractionError("OpenAI response does not match schema") from error
+
+    if status == "unreadable" and (title or blocks):
         raise VisionExtractionError("Unreadable image included extracted text")
 
-    return ExtractedDocument(status=status, title=title, bullets=bullets)
+    return ExtractedDocument(status=status, title=title, blocks=blocks)
