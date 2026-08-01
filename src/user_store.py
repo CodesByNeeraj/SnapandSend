@@ -2,6 +2,7 @@
 
 import base64
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any
 
 from boto3.dynamodb.conditions import Attr
@@ -101,3 +102,30 @@ class UserStore:
 
         response = self.usersTable.scan(FilterExpression=Attr("pending_batch").eq(True))
         return [item["telegram_user_id"] for item in response.get("Items", [])]
+
+    def incrementUsageCount(self, userId: str) -> int:
+        """Increment and return a user's completed-batch usage count."""
+
+        response = self.usersTable.update_item(
+            Key={"telegram_user_id": userId},
+            UpdateExpression="ADD usage_count :one",
+            ExpressionAttributeValues={":one": 1},
+            ReturnValues="UPDATED_NEW",
+        )
+        return int(response["Attributes"]["usage_count"])
+
+    def recordCsatScore(self, userId: str, score: int, ratedAt: datetime) -> None:
+        """Append a CSAT rating and recompute the user's running average."""
+
+        response = self.usersTable.get_item(Key={"telegram_user_id": userId})
+        history = list(response.get("Item", {}).get("csat_history", []))
+        history.append({"score": score, "rated_at": ratedAt.isoformat()})
+        average = sum(entry["score"] for entry in history) / len(history)
+        self.usersTable.update_item(
+            Key={"telegram_user_id": userId},
+            UpdateExpression="SET csat = :average, csat_history = :history",
+            ExpressionAttributeValues={
+                ":average": Decimal(str(average)),
+                ":history": history,
+            },
+        )

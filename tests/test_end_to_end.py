@@ -47,6 +47,9 @@ class FakeUserStore:
     def clearBatchPending(self, userId):
         pass
 
+    def incrementUsageCount(self, userId):
+        return 1
+
 
 class EndToEndTests(unittest.IsolatedAsyncioTestCase):
     async def test_clear_image_batch_sends_one_formatted_email(self):
@@ -66,10 +69,13 @@ class EndToEndTests(unittest.IsolatedAsyncioTestCase):
             "user", None, b"image", datetime.now(timezone.utc)
         )
         recipientEmail, images = doneRouter.closeBatchForProcessing("user")
-        response = await doneRouter.completeProcessing(recipientEmail, images)
+        response, usageCount = await doneRouter.completeProcessing(
+            recipientEmail, images, "user"
+        )
 
         self.assertIn("1/15", acknowledgement)
         self.assertIn("Email sent", response)
+        self.assertEqual(usageCount, 1)
         self.assertEqual(len(emailClient.requests), 1)
         self.assertIn("Slide title", emailClient.requests[0]["text"])
 
@@ -91,7 +97,7 @@ class EndToEndTests(unittest.IsolatedAsyncioTestCase):
             photoRouter.acceptImage("user", None, bytes([index]), now)
 
         recipientEmail, images = doneRouter.closeBatchForProcessing("user")
-        await doneRouter.completeProcessing(recipientEmail, images)
+        await doneRouter.completeProcessing(recipientEmail, images, "user")
 
         self.assertEqual(len(emailClient.requests), 1)
 

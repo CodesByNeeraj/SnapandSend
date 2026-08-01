@@ -1,6 +1,7 @@
 import unittest
 
 from src.done_batch_router import NoBatchToProcessError
+from src.satisfaction_survey import SURVEY_MESSAGE
 from src.telegram_update_adapter import TelegramUpdateAdapter
 from src.vision_extractor import VisionExtractionError
 
@@ -9,9 +10,11 @@ class FakeMessage:
     def __init__(self, text="hello"):
         self.text = text
         self.replies = []
+        self.replyMarkups = []
 
-    async def reply_text(self, text):
+    async def reply_text(self, text, reply_markup=None):
         self.replies.append(text)
+        self.replyMarkups.append(reply_markup)
 
 
 class FakeUpdate:
@@ -49,11 +52,14 @@ class FakePhotoBatchRouter:
 
 
 class FakeDoneBatchRouter:
+    def __init__(self, usageCount=1):
+        self.usageCount = usageCount
+
     def closeBatchForProcessing(self, userId):
         return "person@example.com", [b"image"]
 
-    async def completeProcessing(self, recipientEmail, images):
-        return "Email sent! Check your inbox for your notes."
+    async def completeProcessing(self, recipientEmail, images, userId):
+        return "Email sent! Check your inbox for your notes.", self.usageCount
 
 
 class EmptyBatchDoneBatchRouter:
@@ -62,16 +68,45 @@ class EmptyBatchDoneBatchRouter:
 
 
 class FailingDoneBatchRouter(FakeDoneBatchRouter):
-    async def completeProcessing(self, recipientEmail, images):
+    async def completeProcessing(self, recipientEmail, images, userId):
         raise VisionExtractionError("failed")
 
 
 class FakeBot:
     def __init__(self):
         self.sentMessages = []
+        self.sentMarkups = []
 
-    async def send_message(self, chat_id, text):
+    async def send_message(self, chat_id, text, reply_markup=None):
         self.sentMessages.append((chat_id, text))
+        self.sentMarkups.append(reply_markup)
+
+
+class FakeUserStore:
+    def __init__(self):
+        self.recorded = []
+
+    def recordCsatScore(self, userId, score, ratedAt):
+        self.recorded.append((userId, score))
+
+
+class FakeCallbackQuery:
+    def __init__(self, data, userId):
+        self.data = data
+        self.from_user = type("User", (), {"id": userId})()
+        self.answered = False
+        self.editedTexts = []
+
+    async def answer(self):
+        self.answered = True
+
+    async def edit_message_text(self, text):
+        self.editedTexts.append(text)
+
+
+class FakeCallbackUpdate:
+    def __init__(self, data, userId):
+        self.callback_query = FakeCallbackQuery(data, userId)
 
 
 class FakeDownloadedFile:
@@ -169,6 +204,30 @@ class TelegramUpdateAdapterTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn("could not process", update.effective_message.replies[1])
 
+    async def test_done_prompts_satisfaction_survey_at_threshold_usage_count(self):
+        update = FakeUpdate()
+        adapter = TelegramUpdateAdapter(
+            FakeRouter(), doneBatchRouter=FakeDoneBatchRouter(usageCount=3)
+        )
+        backgroundTask = await adapter.handleDone(update)
+
+        await backgroundTask
+
+        self.assertEqual(len(update.effective_message.replies), 3)
+        self.assertEqual(update.effective_message.replies[2], SURVEY_MESSAGE)
+        self.assertIsNotNone(update.effective_message.replyMarkups[2])
+
+    async def test_done_does_not_prompt_survey_below_threshold_usage_count(self):
+        update = FakeUpdate()
+        adapter = TelegramUpdateAdapter(
+            FakeRouter(), doneBatchRouter=FakeDoneBatchRouter(usageCount=1)
+        )
+        backgroundTask = await adapter.handleDone(update)
+
+        await backgroundTask
+
+        self.assertEqual(len(update.effective_message.replies), 2)
+
     async def test_notify_expired_batch_acknowledges_then_reports_email_sent(self):
         bot = FakeBot()
         adapter = TelegramUpdateAdapter(
@@ -202,6 +261,31 @@ class TelegramUpdateAdapterTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertIn("could not process", bot.sentMessages[1][1])
+
+    async def test_notify_expired_batch_prompts_survey_at_threshold_usage_count(self):
+        bot = FakeBot()
+        adapter = TelegramUpdateAdapter(
+            FakeRouter(), doneBatchRouter=FakeDoneBatchRouter(usageCount=30)
+        )
+
+        await adapter.notifyExpiredBatchProcessing(
+            bot, "user-1", "person@example.com", [b"image"]
+        )
+
+        self.assertEqual(len(bot.sentMessages), 3)
+        self.assertEqual(bot.sentMessages[2], ("user-1", SURVEY_MESSAGE))
+        self.assertIsNotNone(bot.sentMarkups[2])
+
+    async def test_handle_csat_rating_records_score_and_thanks_user(self):
+        userStore = FakeUserStore()
+        adapter = TelegramUpdateAdapter(FakeRouter(), userStore=userStore)
+        update = FakeCallbackUpdate("csat:7", 42)
+
+        await adapter.handleCsatRating(update)
+
+        self.assertEqual(userStore.recorded, [("42", 7)])
+        self.assertTrue(update.callback_query.answered)
+        self.assertEqual(update.callback_query.editedTexts, ["Thank you!"])
 
     async def test_unsupported_upload_replies_with_router_response(self):
         update = FakeUpdate()

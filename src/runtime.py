@@ -78,7 +78,7 @@ def buildRuntime(settings: Settings) -> Runtime:
     return Runtime(
         telegramRouter=telegramRouter,
         telegramUpdateAdapter=TelegramUpdateAdapter(
-            telegramRouter, photoBatchRouter, doneBatchRouter
+            telegramRouter, photoBatchRouter, doneBatchRouter, userStore
         ),
         timeoutScheduler=TimeoutScheduler(expiredBatchProcessor),
         userStore=userStore,

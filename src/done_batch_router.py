@@ -44,8 +44,18 @@ class DoneBatchRouter:
             raise NoBatchToProcessError()
         return recipientEmail, images
 
-    async def completeProcessing(self, recipientEmail: str, images: list[bytes]) -> str:
-        """Run extraction, curation, and delivery; return the outcome message."""
+    async def completeProcessing(
+        self, recipientEmail: str, images: list[bytes], userId: str
+    ) -> tuple[str, int | None]:
+        """Run extraction, curation, and delivery.
+
+        Returns the outcome message, plus the user's updated completed-batch
+        usage count on success or None on an unreadable batch (nothing was
+        actually delivered, so it should not count as a use).
+        """
 
         emailId = await self.batchOrchestrator.processBatch(recipientEmail, images)
-        return EMAIL_SENT_MESSAGE if emailId is not None else UNREADABLE_BATCH_MESSAGE
+        if emailId is None:
+            return UNREADABLE_BATCH_MESSAGE, None
+        usageCount = self.userStore.incrementUsageCount(userId)
+        return EMAIL_SENT_MESSAGE, usageCount
