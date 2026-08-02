@@ -83,6 +83,13 @@ class TelegramRouterTests(unittest.TestCase):
 
         self.assertIn("image", response.lower())
 
+    def test_unknown_command_suggests_done(self):
+        router = TelegramRouter(FakeUserStore())
+
+        response = router.handleUnknownCommand()
+
+        self.assertEqual(response, "Did you mean /done ?")
+
 
 if __name__ == "__main__":
     unittest.main()

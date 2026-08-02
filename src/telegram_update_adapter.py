@@ -189,3 +189,8 @@ class TelegramUpdateAdapter:
         """Handle a Telegram update carrying an unsupported content type."""
 
         await update.effective_message.reply_text(self.router.handleUnsupportedUpload())
+
+    async def handleUnknownCommand(self, update: Any) -> None:
+        """Handle a Telegram update carrying an unrecognized command."""
+
+        await update.effective_message.reply_text(self.router.handleUnknownCommand())

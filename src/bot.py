@@ -43,6 +43,9 @@ def buildApplication(settings: Settings) -> Application:
     )
     application.add_handler(MessageHandler(filters.PHOTO, handlePhotoUpload))
     application.add_handler(MessageHandler(filters.Document.ALL, handleDocumentUpload))
+    application.add_handler(
+        MessageHandler(filters.COMMAND, handleUnknownCommandMessage)
+    )
     application.add_handler(MessageHandler(filters.ALL, handleUnsupportedMessage))
     application.add_handler(
         CallbackQueryHandler(
@@ -133,6 +136,13 @@ async def handleUnsupportedMessage(update: object, context: object) -> None:
 
     adapter = context.application.bot_data["runtime"].telegramUpdateAdapter
     await adapter.handleUnsupportedUpload(update)
+
+
+async def handleUnknownCommandMessage(update: object, context: object) -> None:
+    """Adapt an unrecognized command to the shared unknown-command handler."""
+
+    adapter = context.application.bot_data["runtime"].telegramUpdateAdapter
+    await adapter.handleUnknownCommand(update)
 
 
 def runBot() -> None:

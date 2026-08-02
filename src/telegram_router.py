@@ -20,6 +20,7 @@ EMAIL_REQUIRED_MESSAGE = "Reply with your email address before sending photos."
 RETURNING_USER_START_MESSAGE = "Upload an image to get started."
 IMAGE_ACCEPTED_MESSAGE = "Image accepted. Send more or use /done when ready."
 UNSUPPORTED_UPLOAD_MESSAGE = "Only image files are supported."
+UNKNOWN_COMMAND_MESSAGE = "Did you mean /done ?"
 
 
 class TelegramRouter:
@@ -67,3 +68,8 @@ class TelegramRouter:
         """Return the fixed response for non-image uploads."""
 
         return UNSUPPORTED_UPLOAD_MESSAGE
+
+    def handleUnknownCommand(self) -> str:
+        """Return the fixed response for an unrecognized command."""
+
+        return UNKNOWN_COMMAND_MESSAGE
