@@ -8,7 +8,10 @@ from typing import Any
 from openai import APIError
 
 from src.vision_extractor import CONTENT_BLOCK_SCHEMA, ContentBlock, ExtractedDocument
+from src.vision_extractor import EXPLICIT_PROMPT_CACHE_MODE, PROMPT_CACHE_BREAKPOINT
 from src.vision_extractor import parseContentBlocks
+
+CURATION_PROMPT_CACHE_KEY = "snap-and-send-curation"
 
 CURATION_PROMPT = """
 Combine these extracted documents into one set of notes. Omit near-duplicate
@@ -88,12 +91,18 @@ class NotesCurator:
                 {
                     "role": "user",
                     "content": [
-                        {"type": "input_text", "text": CURATION_PROMPT},
+                        {
+                            "type": "input_text",
+                            "text": CURATION_PROMPT,
+                            "prompt_cache_breakpoint": PROMPT_CACHE_BREAKPOINT,
+                        },
                         {"type": "input_text", "text": json.dumps(readableDocuments)},
                     ],
                 }
             ],
             "text": {"format": CURATION_RESPONSE_FORMAT},
+            "prompt_cache_key": CURATION_PROMPT_CACHE_KEY,
+            "extra_body": EXPLICIT_PROMPT_CACHE_MODE,
         }
         lastError: Exception | None = None
         for _ in range(CURATION_ATTEMPTS):

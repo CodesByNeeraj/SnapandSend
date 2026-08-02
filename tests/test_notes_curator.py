@@ -68,6 +68,14 @@ class NotesCuratorTests(unittest.IsolatedAsyncioTestCase):
         submittedDocuments = json.loads(request["input"][0]["content"][1]["text"])
         self.assertEqual(len(submittedDocuments), 2)
 
+        promptContent = request["input"][0]["content"][0]
+        self.assertEqual(promptContent["prompt_cache_breakpoint"], {"mode": "explicit"})
+        self.assertEqual(request["prompt_cache_key"], "snap-and-send-curation")
+        self.assertEqual(
+            request["extra_body"],
+            {"prompt_cache_options": {"mode": "explicit"}},
+        )
+
     async def test_curate_notes_preserves_paragraph_blocks(self):
         outputText = json.dumps(
             {
