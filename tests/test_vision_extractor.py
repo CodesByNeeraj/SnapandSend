@@ -69,6 +69,14 @@ class VisionExtractorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(responseFormat["type"], "json_schema")
         self.assertTrue(responseFormat["strict"])
 
+        promptContent = request["input"][0]["content"][0]
+        self.assertEqual(promptContent["prompt_cache_breakpoint"], {"mode": "explicit"})
+        self.assertEqual(request["prompt_cache_key"], "snap-and-send-extraction")
+        self.assertEqual(
+            request["extra_body"],
+            {"prompt_cache_options": {"mode": "explicit"}},
+        )
+
     async def test_extract_document_returns_paragraph_block(self):
         outputText = json.dumps(
             {

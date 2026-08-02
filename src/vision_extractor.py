@@ -47,6 +47,14 @@ table into a bullet list or paragraph.
 """.strip()
 EXTRACTION_ATTEMPTS = 2
 
+# Marks the end of the static instruction prefix so it can be cached
+# separately from the per-call image; without this, GPT-5.6+ caches nothing
+# for this request shape (see notes_curator.py for the identical pattern
+# applied to curation calls).
+PROMPT_CACHE_BREAKPOINT = {"mode": "explicit"}
+EXTRACTION_PROMPT_CACHE_KEY = "snap-and-send-extraction"
+EXPLICIT_PROMPT_CACHE_MODE = {"prompt_cache_options": {"mode": "explicit"}}
+
 HEADING_BLOCK_SCHEMA = {
     "type": "object",
     "properties": {
@@ -188,12 +196,18 @@ class VisionExtractor:
                 {
                     "role": "user",
                     "content": [
-                        {"type": "input_text", "text": EXTRACTION_PROMPT},
+                        {
+                            "type": "input_text",
+                            "text": EXTRACTION_PROMPT,
+                            "prompt_cache_breakpoint": PROMPT_CACHE_BREAKPOINT,
+                        },
                         {"type": "input_image", "image_url": imageUrl},
                     ],
                 }
             ],
             "text": {"format": EXTRACTION_RESPONSE_FORMAT},
+            "prompt_cache_key": EXTRACTION_PROMPT_CACHE_KEY,
+            "extra_body": EXPLICIT_PROMPT_CACHE_MODE,
         }
 
         lastError: Exception | None = None
