@@ -33,7 +33,10 @@ If a short bold or otherwise visually distinct sub-label introduces the text
 that follows it (for example a small heading above its own paragraph or
 bullet list within the slide), return that sub-label as its own `heading`
 block immediately before the block it introduces. Never merge a sub-label
-into the text that follows it as a single paragraph or bullet.
+into the text that follows it as a single paragraph or bullet. Do not
+repeat the document's own title as a heading block -- the title field
+already captures it; only use heading blocks for sub-labels distinct from
+the overall title.
 
 If the image contains a flowchart or diagram (boxes or steps connected by
 arrows), return a `flowchart` block instead of paragraph or bullets for that
