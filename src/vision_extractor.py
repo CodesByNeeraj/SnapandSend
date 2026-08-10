@@ -16,6 +16,11 @@ appears in the source. Do not paraphrase, summarize, or rewrite phrasing,
 even to make it more concise or grammatical. Preserve the source order. Do
 not infer, add, or correct information that is not visible.
 
+If any part of the source is blurry, too small, obscured, or otherwise
+illegible, do not guess or invent text to fill that part in, even if you can
+infer the likely topic from context or general knowledge. Leave that part
+out entirely rather than fabricating plausible-sounding content.
+
 If the image is blurry, dark, textless, or otherwise unreadable, return status
 `unreadable`, an empty title, and no blocks. Otherwise return status
 `readable`, a concise title, and the body as an ordered list of blocks that
