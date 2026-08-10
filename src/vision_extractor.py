@@ -16,6 +16,11 @@ appears in the source. Do not paraphrase, summarize, or rewrite phrasing,
 even to make it more concise or grammatical. Preserve the source order. Do
 not infer, add, or correct information that is not visible.
 
+If any part of the source is blurry, too small, obscured, or otherwise
+illegible, do not guess or invent text to fill that part in, even if you can
+infer the likely topic from context or general knowledge. Leave that part
+out entirely rather than fabricating plausible-sounding content.
+
 If the image is blurry, dark, textless, or otherwise unreadable, return status
 `unreadable`, an empty title, and no blocks. Otherwise return status
 `readable`, a concise title, and the body as an ordered list of blocks that
@@ -28,7 +33,10 @@ If a short bold or otherwise visually distinct sub-label introduces the text
 that follows it (for example a small heading above its own paragraph or
 bullet list within the slide), return that sub-label as its own `heading`
 block immediately before the block it introduces. Never merge a sub-label
-into the text that follows it as a single paragraph or bullet.
+into the text that follows it as a single paragraph or bullet. Do not
+repeat the document's own title as a heading block -- the title field
+already captures it; only use heading blocks for sub-labels distinct from
+the overall title.
 
 If the image contains a flowchart or diagram (boxes or steps connected by
 arrows), return a `flowchart` block instead of paragraph or bullets for that
