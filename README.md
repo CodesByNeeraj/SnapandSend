@@ -23,7 +23,7 @@ By the time you're back at the laptop, the notes are already in your inbox, read
 
 ## Table of Contents
 
-1. Product Walkthrough
+1. [Product Walkthrough](#product-walkthrough)
 2. Privacy & Security
 3. Tech Stack Used
 4. Why these Technologies?
@@ -31,3 +31,42 @@ By the time you're back at the laptop, the notes are already in your inbox, read
 6. Key Decisions Made
 7. Evaluations
 8. View PRD
+
+## Product Walkthrough
+
+### Starting a conversation
+
+![The /start command onboarding a new user](gallery/start_message.jpeg)
+
+*The bot's onboarding message after /start, followed by email registration.*
+
+Sending `/start` shows what the bot does, discloses that photos are sent to
+OpenAI for extraction and notes are delivered through Resend, and asks for
+an email address. Reply with a valid email address and the bot confirms it
+is saved. Photos can be sent right after.
+
+### Sending photos and getting a response
+
+![Photos being sent to the bot and accepted one by one](gallery/send_images.jpeg)
+
+![The bot acknowledging /done and confirming the email was sent](gallery/botresponse.jpeg)
+
+*Each photo is acknowledged with a running count, and /done triggers
+processing right away.*
+
+Every accepted photo gets an immediate reply with a running count, for
+example "Image accepted (2/15)". A batch holds a maximum of 15 photos.
+Sending `/done` starts processing right away instead of waiting for the
+3-minute inactivity window to close the batch automatically. The bot
+replies once to confirm it is processing, then again once the email has
+been sent.
+
+### The emailed notes
+
+![An example email with formatted notes from a batch of slides](gallery/snap&send_email_example.png)
+
+*The final email: one heading per photo, with the extracted content kept in
+its original structure.*
+
+Once processing finishes, one email arrives with all of the batch's content
+combined, in the order the photos were sent.
