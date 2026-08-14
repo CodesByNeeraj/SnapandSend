@@ -2,12 +2,15 @@
 
 import html
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from src.notes_curator import CuratedNotes
 from src.vision_extractor import ContentBlock
 
-EMAIL_SUBJECT = "Your Snap&Send notes"
+EMAIL_SUBJECT_PREFIX = "Your Snap&Send notes"
+EMAIL_SUBJECT_TIMEZONE = "Asia/Singapore"
 
 HTML_BODY_STYLE = "font-family: sans-serif; color: #1a1a1a; line-height: 1.5;"
 HTML_HEADING_STYLE = "margin: 24px 0 8px;"
@@ -24,6 +27,14 @@ FLOWCHART_ARROW = "→"
 
 class EmailDeliveryError(RuntimeError):
     """Raised when Resend cannot deliver a completed notes email."""
+
+
+def buildEmailSubject(now: datetime | None = None) -> str:
+    """Build the email subject with today's date in Singapore time."""
+
+    currentTime = now or datetime.now(timezone.utc)
+    singaporeDate = currentTime.astimezone(ZoneInfo(EMAIL_SUBJECT_TIMEZONE))
+    return f"{EMAIL_SUBJECT_PREFIX} - {singaporeDate.strftime('%d %b %Y')}"
 
 
 @dataclass(frozen=True)
@@ -182,7 +193,7 @@ class EmailSender:
                 {
                     "from": self.fromEmail,
                     "to": [recipientEmail],
-                    "subject": EMAIL_SUBJECT,
+                    "subject": buildEmailSubject(),
                     "text": renderEmailBody(notes),
                     "html": renderEmailBodyHtml(notes),
                 }

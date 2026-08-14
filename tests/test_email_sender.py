@@ -1,8 +1,11 @@
 import unittest
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from src.email_sender import (
     EmailDeliveryError,
     EmailSender,
+    buildEmailSubject,
     renderEmailBody,
     renderEmailBodyHtml,
 )
@@ -260,6 +263,14 @@ class EmailSenderTests(unittest.TestCase):
         self.assertIn("<td", html)
         self.assertIn("China &amp; co", html)
 
+    def test_build_email_subject_includes_the_date_in_singapore_timezone(self):
+        # 11pm UTC on Jan 1 is already Jan 2 in Singapore (UTC+8).
+        now = datetime(2026, 1, 1, 23, 0, tzinfo=ZoneInfo("UTC"))
+
+        subject = buildEmailSubject(now)
+
+        self.assertEqual(subject, "Your Snap&Send notes - 02 Jan 2026")
+
     def test_send_notes_sends_one_email_to_registered_address(self):
         client = FakeEmailClient()
         sender = EmailSender(client, "notes@example.com")
@@ -277,6 +288,9 @@ class EmailSenderTests(unittest.TestCase):
         self.assertIn("Slide title", client.requests[0]["text"])
         self.assertIn("Slide title</h2>", client.requests[0]["html"])
         self.assertIn("<li>First point</li>", client.requests[0]["html"])
+        self.assertTrue(
+            client.requests[0]["subject"].startswith("Your Snap&Send notes - ")
+        )
 
     def test_send_notes_does_not_call_provider_for_empty_notes(self):
         client = FakeEmailClient()
