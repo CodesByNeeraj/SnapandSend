@@ -25,7 +25,7 @@ By the time you're back at the laptop, the notes are already in your inbox, read
 
 1. [Product Walkthrough](#product-walkthrough)
 2. [Privacy & Security](#privacy--security)
-3. Tech Stack Used
+3. [Tech Stack Used](#tech-stack-used)
 4. Why these Technologies?
 5. System Architecture Diagram
 6. Key Decisions Made
@@ -77,3 +77,24 @@ combined, in the order the photos were sent.
   AWS KMS before being written to the database, using a per-user encryption
   context so one user's ciphertext cannot be decrypted in another user's
   context.
+
+## Tech Stack Used
+
+- **Bot framework:** [python-telegram-bot](https://python-telegram-bot.org/)
+  (async), running in long-polling mode.
+- **Text extraction:** OpenAI's API, called with a structured output schema
+  so responses come back as typed content blocks (headings, paragraphs,
+  bullet lists, tables, flowcharts) instead of raw text.
+- **Batching and state:** an in-memory dictionary on the bot process,
+  cleared on `/done` or after a 3-minute inactivity timeout.
+- **Database:** DynamoDB, a single `users` table keyed by
+  `telegram_user_id`.
+- **Encryption:** AWS KMS, used to encrypt registered emails before they
+  are written to DynamoDB.
+- **Email delivery:** [Resend](https://resend.com/).
+- **Image handling:** [Pillow](https://python-pillow.org/), for in-memory
+  resizing and compression before the OpenAI call.
+- **Observability:** [Langfuse](https://langfuse.com/), for tracing
+  extraction and curation calls.
+- **Hosting:** Railway, running the bot as a single long-lived process.
+- **Language and runtime:** Python 3.12.
