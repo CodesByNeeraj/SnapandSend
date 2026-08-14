@@ -19,6 +19,8 @@ flowcharts.
 It combines everything from a batch of photos sent into one set of notes and
 emails it to you almost immediately.
 
+By the time you're back at the laptop, the notes are already in your inbox, ready to file away wherever you keep them.
+
 ## Table of Contents
 
 1. Product Walkthrough
