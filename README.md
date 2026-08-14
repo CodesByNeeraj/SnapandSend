@@ -80,21 +80,14 @@ combined, in the order the photos were sent.
 
 ## Tech Stack Used
 
-- **Bot framework:** [python-telegram-bot](https://python-telegram-bot.org/)
-  (async), running in long-polling mode.
-- **Text extraction:** OpenAI's API, called with a structured output schema
-  so responses come back as typed content blocks (headings, paragraphs,
-  bullet lists, tables, flowcharts) instead of raw text.
-- **Batching and state:** an in-memory dictionary on the bot process,
-  cleared on `/done` or after a 3-minute inactivity timeout.
-- **Database:** DynamoDB, a single `users` table keyed by
-  `telegram_user_id`.
-- **Encryption:** AWS KMS, used to encrypt registered emails before they
-  are written to DynamoDB.
-- **Email delivery:** [Resend](https://resend.com/).
-- **Image handling:** [Pillow](https://python-pillow.org/), for in-memory
-  resizing and compression before the OpenAI call.
-- **Observability:** [Langfuse](https://langfuse.com/), for tracing
-  extraction and curation calls.
-- **Hosting:** Railway, running the bot as a single long-lived process.
-- **Language and runtime:** Python 3.12.
+| Layer               | Technology                                  |
+| -------------------- | -------------------------------------------- |
+| Language & Runtime    | Python 3.12                                  |
+| Bot Framework         | python-telegram-bot (async, long-polling)    |
+| LLM                   | OpenAI (structured output, gpt-5.6-terra)    |
+| Database              | AWS DynamoDB                                 |
+| Email Encryption      | AWS KMS                                      |
+| Email Delivery        | Resend                                       |
+| Image Processing      | Pillow                                       |
+| LLM Observability     | Langfuse                                     |
+| Hosting               | Railway                                      |
