@@ -24,7 +24,7 @@ By the time you're back at the laptop, the notes are already in your inbox, read
 ## Table of Contents
 
 1. [Product Walkthrough](#product-walkthrough)
-2. Privacy & Security
+2. [Privacy & Security](#privacy--security)
 3. Tech Stack Used
 4. Why these Technologies?
 5. System Architecture Diagram
@@ -70,3 +70,26 @@ its original structure.*
 
 Once processing finishes, one email arrives with all of the batch's content
 combined, in the order the photos were sent.
+
+## Privacy & Security
+
+- **Emails are encrypted at rest.** Registered addresses are encrypted with
+  AWS KMS before being written to the database, using a per-user encryption
+  context so one user's ciphertext cannot be decrypted in another user's
+  context.
+- **Photos are never written to disk.** Uploaded images are resized and
+  compressed entirely in memory and are never saved to a file or object
+  storage at any point.
+- **Batch state does not survive a crash.** In-progress photos live only in
+  the bot's process memory. If the bot restarts mid-batch, that batch is
+  discarded rather than partially sent, and the user is asked to resend
+  their photos.
+- **Nothing sensitive is logged.** Extracted text, image content, and email
+  addresses are never written to application logs.
+- **Traces are scrubbed of photo data.** Observability traces sent for
+  monitoring have any embedded image data stripped out before they leave
+  the bot, so raw photo bytes never reach that tooling either.
+- **Third parties are limited to what each step needs.** Photos go to
+  OpenAI only for text extraction, and notes go to Resend only for
+  delivery. Neither service receives anything beyond what that step
+  requires.
