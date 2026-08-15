@@ -26,7 +26,7 @@ By the time you're back at the laptop, the notes are already in your inbox, read
 1. [Product Walkthrough](#product-walkthrough)
 2. [Privacy & Security](#privacy--security)
 3. [Tech Stack Used](#tech-stack-used)
-4. Why these Technologies?
+4. [Why these Technologies?](#why-these-technologies)
 5. System Architecture Diagram
 6. Key Decisions Made
 7. Evaluations
@@ -91,3 +91,39 @@ combined, in the order the photos were sent.
 | Image Processing      | Pillow                                       |
 | LLM Observability     | Langfuse                                     |
 | Hosting               | Railway                                      |
+
+## Why these Technologies?
+
+- **Python 3.12.** Strong async support for a pipeline that is mostly
+  waiting on network calls (Telegram, OpenAI, DynamoDB, KMS, Resend), and a
+  mature ecosystem for every one of those integrations.
+- **python-telegram-bot, long-polling.** A well-maintained async wrapper
+  around the Telegram Bot API. Long-polling means the bot only needs to
+  make outbound connections, so it never needs a public HTTPS endpoint,
+  TLS certificate, or webhook registration to run, which keeps both local
+  development and deployment simple for a single-instance v1.
+- **OpenAI, structured output.** The model needs to read photographed
+  slides and whiteboards, so a vision-capable model is required either way.
+  Structured output (a strict JSON schema) means every response comes back
+  as typed, predictable content blocks instead of free text that would
+  need fragile parsing, and it is what makes preserving the source's real
+  structure (headings, bullets, tables, flowcharts) possible at all.
+- **AWS DynamoDB.** The app only ever needs one simple lookup: a user's
+  record by their Telegram ID. On-demand billing avoids provisioning
+  capacity for unpredictable, low-volume traffic, and it is fully managed,
+  so there is no database server to run or patch.
+- **AWS KMS.** Used to encrypt registered emails before they are written to
+  DynamoDB. A managed key service means the encryption keys themselves are
+  never something the app has to generate, store, or rotate.
+- **Resend.** A straightforward transactional email API with a simple
+  domain verification flow and support for sending both an HTML and a
+  plain-text body in one request.
+- **Pillow.** The standard, mature Python imaging library, used to resize
+  and compress photos entirely in memory before they are sent to OpenAI.
+- **Langfuse.** Purpose-built for tracing LLM calls specifically, not a
+  generic APM tool. It wraps the OpenAI client directly, so extraction and
+  curation calls are traced automatically, giving per-call visibility into
+  latency, token usage, and cost.
+- **Railway.** Runs the bot as a single, always-on process, which is what
+  long-polling requires, without needing to manage servers or containers
+  directly.
