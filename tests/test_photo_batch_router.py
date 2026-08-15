@@ -40,46 +40,84 @@ class FakeUserStore:
         self.pendingMarks.append(userId)
 
 
-class PhotoBatchRouterTests(unittest.TestCase):
-    def test_accept_image_prepares_stores_and_acknowledges(self):
+class PhotoBatchRouterTests(unittest.IsolatedAsyncioTestCase):
+    async def test_accept_image_prepares_stores_and_acknowledges(self):
         rateLimiter = FakeRateLimiter()
         batchManager = FakeBatchManager(count=2)
         userStore = FakeUserStore()
         router = PhotoBatchRouter(
             rateLimiter, batchManager, lambda image: b"prepared", userStore
         )
-        result = router.acceptImage("user", None, b"raw", datetime.now(timezone.utc))
+        result = await router.acceptImage(
+            "user", None, b"raw", datetime.now(timezone.utc)
+        )
         self.assertIn("2/15", result)
         self.assertEqual(batchManager.images, [b"prepared"])
         self.assertEqual(rateLimiter.recorded, 1)
 
-    def test_accept_image_does_not_prepare_or_record_when_rate_limited(self):
+    async def test_accept_image_does_not_prepare_or_record_when_rate_limited(self):
         rateLimiter = FakeRateLimiter(accepts=False)
         batchManager = FakeBatchManager()
         userStore = FakeUserStore()
         router = PhotoBatchRouter(
             rateLimiter, batchManager, lambda image: b"prepared", userStore
         )
-        result = router.acceptImage("user", None, b"raw", datetime.now(timezone.utc))
+        result = await router.acceptImage(
+            "user", None, b"raw", datetime.now(timezone.utc)
+        )
         self.assertIn("limit", result)
         self.assertEqual(batchManager.images, [])
         self.assertEqual(rateLimiter.recorded, 0)
         self.assertEqual(userStore.pendingMarks, [])
 
-    def test_accept_image_marks_pending_batch_only_for_first_photo(self):
+    async def test_accept_image_marks_pending_batch_only_for_first_photo(self):
         rateLimiter = FakeRateLimiter()
         userStore = FakeUserStore()
         firstPhotoRouter = PhotoBatchRouter(
             rateLimiter, FakeBatchManager(count=1), lambda image: b"prepared", userStore
         )
-        firstPhotoRouter.acceptImage("user", None, b"raw", datetime.now(timezone.utc))
+        await firstPhotoRouter.acceptImage(
+            "user", None, b"raw", datetime.now(timezone.utc)
+        )
         self.assertEqual(userStore.pendingMarks, ["user"])
 
         laterPhotoRouter = PhotoBatchRouter(
             rateLimiter, FakeBatchManager(count=2), lambda image: b"prepared", userStore
         )
-        laterPhotoRouter.acceptImage("user", None, b"raw", datetime.now(timezone.utc))
+        await laterPhotoRouter.acceptImage(
+            "user", None, b"raw", datetime.now(timezone.utc)
+        )
         self.assertEqual(userStore.pendingMarks, ["user"])
+
+    async def test_accept_image_offloads_preparation_off_the_event_loop(self):
+        """A blocking imagePreparer must not stall other concurrent work on
+        the event loop; acceptImage should run it in a thread executor."""
+
+        import asyncio
+        import time
+
+        def blockingPrepare(imageBytes):
+            time.sleep(0.2)
+            return b"prepared"
+
+        rateLimiter = FakeRateLimiter()
+        router = PhotoBatchRouter(
+            rateLimiter, FakeBatchManager(), blockingPrepare, FakeUserStore()
+        )
+
+        heartbeats = []
+
+        async def heartbeat():
+            for _ in range(4):
+                await asyncio.sleep(0.05)
+                heartbeats.append(asyncio.get_running_loop().time())
+
+        await asyncio.gather(
+            router.acceptImage("user", None, b"raw", datetime.now(timezone.utc)),
+            heartbeat(),
+        )
+
+        self.assertEqual(len(heartbeats), 4)
 
 
 if __name__ == "__main__":

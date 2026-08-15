@@ -77,7 +77,7 @@ class TelegramUpdateAdapter:
         pendingUpload = self.pendingUploads.pop(userId, None)
         if response == EMAIL_SAVED_MESSAGE and pendingUpload:
             userName, imageBytes, uploadedAt = pendingUpload
-            acknowledgement = self.photoBatchRouter.acceptImage(
+            acknowledgement = await self.photoBatchRouter.acceptImage(
                 userId, userName, imageBytes, uploadedAt
             )
             await update.effective_message.reply_text(acknowledgement)
@@ -103,7 +103,7 @@ class TelegramUpdateAdapter:
             )
             await update.effective_message.reply_text(gateResponse)
             return
-        response = self.photoBatchRouter.acceptImage(
+        response = await self.photoBatchRouter.acceptImage(
             userId,
             update.effective_user.username,
             imageBytes,
