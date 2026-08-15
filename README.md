@@ -27,7 +27,7 @@ By the time you're back at the laptop, the notes are already in your inbox, read
 2. [Privacy & Security](#privacy--security)
 3. [Tech Stack Used](#tech-stack-used)
 4. [Why these Technologies?](#why-these-technologies)
-5. System Architecture Diagram
+5. [System Architecture Diagram](#system-architecture-diagram)
 6. Key Decisions Made
 7. Evaluations
 8. View PRD
@@ -127,3 +127,7 @@ combined, in the order the photos were sent.
 - **Railway.** Runs the bot as a single, always-on process, which is what
   long-polling requires, without needing to manage servers or containers
   directly.
+
+## System Architecture Diagram
+
+![Snap&Send system architecture](gallery/Snapandsendarchilatest.svg)
