@@ -65,7 +65,7 @@ class EndToEndTests(unittest.IsolatedAsyncioTestCase):
         )
         doneRouter = DoneBatchRouter(batchManager, FakeUserStore(), orchestrator)
 
-        acknowledgement = photoRouter.acceptImage(
+        acknowledgement = await photoRouter.acceptImage(
             "user", None, b"image", datetime.now(timezone.utc)
         )
         recipientEmail, images = doneRouter.closeBatchForProcessing("user")
@@ -94,7 +94,7 @@ class EndToEndTests(unittest.IsolatedAsyncioTestCase):
         now = datetime.now(timezone.utc)
 
         for index in range(8):
-            photoRouter.acceptImage("user", None, bytes([index]), now)
+            await photoRouter.acceptImage("user", None, bytes([index]), now)
 
         recipientEmail, images = doneRouter.closeBatchForProcessing("user")
         await doneRouter.completeProcessing(recipientEmail, images, "user")
@@ -109,8 +109,8 @@ class EndToEndTests(unittest.IsolatedAsyncioTestCase):
         now = datetime.now(timezone.utc)
 
         for index in range(15):
-            photoRouter.acceptImage("user", None, bytes([index]), now)
-        response = photoRouter.acceptImage("user", None, b"sixteenth", now)
+            await photoRouter.acceptImage("user", None, bytes([index]), now)
+        response = await photoRouter.acceptImage("user", None, b"sixteenth", now)
 
         self.assertIn("15 photos", response)
         self.assertEqual(len(batchManager.getPhotos("user")), 15)

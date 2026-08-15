@@ -50,7 +50,7 @@ class AwaitingEmailRouter(FakeRouter):
 
 
 class FakePhotoBatchRouter:
-    def acceptImage(self, userId, userName, imageBytes, receivedAt):
+    async def acceptImage(self, userId, userName, imageBytes, receivedAt):
         return "Image accepted (1/15)."
 
 

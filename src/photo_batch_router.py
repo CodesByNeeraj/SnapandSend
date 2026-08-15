@@ -1,5 +1,6 @@
 """Deterministic acceptance of prepared image uploads into photo batches."""
 
+import asyncio
 from datetime import datetime
 from typing import Any
 
@@ -18,7 +19,7 @@ class PhotoBatchRouter:
         self.imagePreparer = imagePreparer
         self.userStore = userStore
 
-    def acceptImage(
+    async def acceptImage(
         self,
         userId: str,
         userName: str | None,
@@ -30,7 +31,11 @@ class PhotoBatchRouter:
         calendarDay = self.rateLimiter.getCalendarDay(receivedAt)
         if not self.rateLimiter.canAcceptPhoto(userId, calendarDay, userName):
             return RATE_LIMIT_MESSAGE
-        preparedImage = self.imagePreparer(imageBytes)
+        # Runs off the event loop so one user's resize/compress work cannot
+        # delay every other concurrent user's acknowledgement.
+        preparedImage = await asyncio.get_running_loop().run_in_executor(
+            None, self.imagePreparer, imageBytes
+        )
         try:
             count = self.batchManager.addPhoto(userId, preparedImage, receivedAt)
         except ValueError:
