@@ -12,7 +12,7 @@
 8. [System Architecture Diagram](#system-architecture-diagram)
 9. [Key Decisions Made](#key-decisions-made)
 10. [Evaluations](#evaluations)
-11. View PRD
+11. [View PRD & Success Metrics](#view-prd--success-metrics)
 
 ## What is Snap&Send?
 
@@ -181,3 +181,7 @@ single run. k = 3 to 5 was used to check for consistency.
 
 - [AI Evals Doc](https://docs.google.com/spreadsheets/d/1ITmXxpbtGjXEHDbZ_ZPcPFOKRDlK0IoAr-u3scMrA9A/edit?usp=sharing)
 - [LLM Extractions for all test images](https://docs.google.com/document/d/1QmGhdIwU1ksg0tkFloPS2Xsil3kkWQcB-Xkvf9atuBg/edit?usp=drive_link)
+
+## View PRD & Success Metrics
+
+[Snap&Send PRD](https://docs.google.com/document/d/1F90E5m1jnbrC9nL-MdLlIFVPdsd75ltWa5hVySITf7E/edit?usp=drive_link)
