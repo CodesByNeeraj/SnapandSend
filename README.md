@@ -86,6 +86,9 @@ combined, in the order the photos were sent.
   AWS KMS before being written to the database, using a per-user encryption
   context so one user's ciphertext cannot be decrypted in another user's
   context.
+- **Images are never saved to any database.** Photos are held in memory
+  only, sent directly to the LLM for processing, and then discarded. They
+  are never written to DynamoDB, disk, or any other storage.
 
 ## Tech Stack Used
 
