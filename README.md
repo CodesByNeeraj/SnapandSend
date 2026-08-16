@@ -1,5 +1,19 @@
 # Snap&Send
 
+## Table of Contents
+
+1. [What is Snap&Send?](#what-is-snapsend)
+2. [Try out Snap&Send](#try-out-snapsend)
+3. [How Snap&Send Works](#how-snapsend-works)
+4. [Product Walkthrough](#product-walkthrough)
+5. [Privacy & Security](#privacy--security)
+6. [Tech Stack Used](#tech-stack-used)
+7. [Why these Technologies?](#why-these-technologies)
+8. [System Architecture Diagram](#system-architecture-diagram)
+9. [Key Decisions Made](#key-decisions-made)
+10. Evaluations
+11. View PRD
+
 ## What is Snap&Send?
 
 Snap&Send is a Telegram bot for people who frequent conferences & networking
@@ -26,17 +40,6 @@ It combines everything from a batch of photos sent into one set of notes and
 emails it to you almost immediately.
 
 By the time you're back at the laptop, the notes are already in your inbox, ready to file away wherever you keep them.
-
-## Table of Contents
-
-1. [Product Walkthrough](#product-walkthrough)
-2. [Privacy & Security](#privacy--security)
-3. [Tech Stack Used](#tech-stack-used)
-4. [Why these Technologies?](#why-these-technologies)
-5. [System Architecture Diagram](#system-architecture-diagram)
-6. [Key Decisions Made](#key-decisions-made)
-7. Evaluations
-8. View PRD
 
 ## Product Walkthrough
 
