@@ -185,3 +185,5 @@ single run. k = 3 to 5 was used to check for consistency.
 ## View PRD & Success Metrics
 
 [Snap&Send PRD](https://docs.google.com/document/d/1F90E5m1jnbrC9nL-MdLlIFVPdsd75ltWa5hVySITf7E/edit?usp=drive_link)
+
+Find Success Metrics in the PRD.
