@@ -134,18 +134,13 @@ combined, in the order the photos were sent.
 
 ## Key Decisions Made
 
-### Email delivery for the first version
-
-Notes are delivered by email rather than sent back inside the Telegram
-chat, for two main reasons:
-
-1. **Most people check their email every day.** Notes landing there means
-   they are easy to find later, and can be copy-pasted straight into
-   whatever notes tool someone already uses, whether that is Notion,
-   Google Docs, or a plain notes app, instead of being locked into
-   Telegram.
-2. **A better experience overall.** Sending extracted text back inside the
-   Telegram chat would clutter the conversation with long blocks of text.
-   It also assumes the user has Telegram installed on their laptop, which
-   is not always true, while checking email on a laptop is close to
-   universal.
+- **Notes are delivered by email, not inside the Telegram chat.** Most
+  people check their email every day. Notes landing there are easy to find
+  later, and can be copy-pasted straight into whatever notes tool someone
+  already uses, whether that is Notion, Google Docs, or a plain notes app,
+  instead of being locked into Telegram.
+- **Email also gives a better experience overall.** Sending extracted text
+  back inside the Telegram chat would clutter the conversation with long
+  blocks of text. It also assumes the user has Telegram installed on their
+  laptop, which is not always true, while checking email on a laptop is
+  close to universal.
