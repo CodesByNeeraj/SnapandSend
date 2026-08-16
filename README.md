@@ -11,7 +11,7 @@
 7. [Why these Technologies?](#why-these-technologies)
 8. [System Architecture Diagram](#system-architecture-diagram)
 9. [Key Decisions Made](#key-decisions-made)
-10. Evaluations
+10. [Evaluations](#evaluations)
 11. View PRD
 
 ## What is Snap&Send?
@@ -153,3 +153,31 @@ combined, in the order the photos were sent.
   blocks of text. It also assumes the user has Telegram installed on their
   laptop, which is not always true, while checking email on a laptop is
   close to universal.
+
+## Evaluations
+
+Tested on 20 different images, a mix of handwritten notes, posters, and
+slide images.
+
+| Metric             | Result                | What it measures                                                    |
+| ------------------- | ---------------------- | --------------------------------------------------------------------- |
+| Fabrication Rate    | 2.50% (lower is better) | Whether the output text was exactly what was visible in the image    |
+| Completeness        | 98.64%                 | Whether all visible text in the image was extracted                  |
+| Average Latency     | 14.812s                | Round trip from message sent to email received, across all 20 images |
+| Average Cost        | $0.04 per image         | -                                                                     |
+
+Latency and cost were measured through Langfuse.
+
+### Pass^k
+
+When a prompt change was made to correct an issue surfaced during testing,
+Pass^k was used to check that the fix actually held up rather than just
+happening to work once. Pass^k estimates the probability that the model
+succeeds on all k independent attempts at the same input, which is useful
+for evaluating consistency and reliability, not just correctness on a
+single run. k = 3 to 5 was used to check for consistency.
+
+### Further reading
+
+- [AI Evals Doc](https://docs.google.com/spreadsheets/d/1ITmXxpbtGjXEHDbZ_ZPcPFOKRDlK0IoAr-u3scMrA9A/edit?usp=sharing)
+- [LLM Extractions for all test images](https://docs.google.com/document/d/1QmGhdIwU1ksg0tkFloPS2Xsil3kkWQcB-Xkvf9atuBg/edit?usp=drive_link)
