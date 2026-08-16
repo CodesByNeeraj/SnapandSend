@@ -164,7 +164,7 @@ slide images.
 | Fabrication Rate    | 2.50% (lower is better) | Whether the output text was exactly what was visible in the image    |
 | Completeness        | 98.64%                 | Whether all visible text in the image was extracted                  |
 | Average Latency     | 14.812s                | Round trip from message sent to email received, across all 20 images |
-| Average Cost        | $0.04 per image         | -                                                                     |
+| Average Cost        | $0.04 per image         | Cost to extract text from images                                     |
 
 Latency and cost were measured through Langfuse.
 
