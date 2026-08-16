@@ -28,7 +28,7 @@ By the time you're back at the laptop, the notes are already in your inbox, read
 3. [Tech Stack Used](#tech-stack-used)
 4. [Why these Technologies?](#why-these-technologies)
 5. [System Architecture Diagram](#system-architecture-diagram)
-6. Key Decisions Made
+6. [Key Decisions Made](#key-decisions-made)
 7. Evaluations
 8. View PRD
 
@@ -131,3 +131,21 @@ combined, in the order the photos were sent.
 ## System Architecture Diagram
 
 ![Snap&Send system architecture](gallery/Snapandsendarchilatest.svg)
+
+## Key Decisions Made
+
+### Email delivery for the first version
+
+Notes are delivered by email rather than sent back inside the Telegram
+chat, for two main reasons:
+
+1. **Most people check their email every day.** Notes landing there means
+   they are easy to find later, and can be copy-pasted straight into
+   whatever notes tool someone already uses, whether that is Notion,
+   Google Docs, or a plain notes app, instead of being locked into
+   Telegram.
+2. **A better experience overall.** Sending extracted text back inside the
+   Telegram chat would clutter the conversation with long blocks of text.
+   It also assumes the user has Telegram installed on their laptop, which
+   is not always true, while checking email on a laptop is close to
+   universal.
