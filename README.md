@@ -6,6 +6,10 @@ Snap&Send is a Telegram bot for people who frequent conferences & networking
 events. Many take photos of presenter slides but never look at them again.
 As a result, the knowledge gained from the event gets lost.
 
+## Try out Snap&Send
+
+Search `@SnapAndSendBot` in Telegram.
+
 ## How Snap&Send Works
 
 Send it photos whenever u capture them at an event & never feel the need to
