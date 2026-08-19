@@ -16,9 +16,7 @@
 
 ## What is Snap&Send?
 
-Snap&Send is a Telegram bot for people who frequent conferences & networking
-events. Many take photos of presenter slides but never look at them again.
-As a result, the knowledge gained from the event gets lost.
+Daily, many individuals around the world attend events and photographs slides shown by the speakers but never look at them again afterward. Snap&Send is a Telegram bot that accepts photo uploads, extracts text via OpenAI API, formats it into clean structured notes, and emails the result. Individuals can then copy those notes into whichever note taking platform they use. 
 
 ## Try out Snap&Send
 
